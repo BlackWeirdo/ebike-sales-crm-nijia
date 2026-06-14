@@ -1,0 +1,48 @@
+/* Smooth, professional micro-interactions — applied globally, layered after Mantine. */
+
+/* Interactive elements: gentle transition on hover/active/focus. */
+button,
+a,
+.mantine-ActionIcon-root,
+.mantine-NavLink-root,
+[role='button'] {
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease,
+    transform 120ms ease;
+}
+
+/* Buttons & action icons: subtle lift on hover, press-down on active. */
+.mantine-Button-root:not(:disabled):hover,
+.mantine-ActionIcon-root:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+.mantine-Button-root:not(:disabled):active,
+.mantine-ActionIcon-root:not(:disabled):active {
+  transform: translateY(0);
+}
+
+/* Cards: soft elevation on hover for clickable surfaces. */
+.mantine-Card-root {
+  transition:
+    box-shadow 160ms ease,
+    border-color 160ms ease;
+}
+
+/* Table rows: smooth highlight. */
+tbody tr {
+  transition: background-color 120ms ease;
+}
+
+/* Respect users who prefer reduced motion (accessibility). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

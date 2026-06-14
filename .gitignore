@@ -1,0 +1,22 @@
+node_modules/
+dist/
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.DS_Store
+*.log
+.env
+scripts/shots/
+scripts/test-import.xlsx
+
+# Tooling Claude Code (không phải code app — tái tạo được)
+.claude/
+
+# Dự án riêng biệt nằm chung thư mục (không thuộc app CRM)
+veo3-manager/
+landing-page/
+
+# File generated
+repomix-output.xml
