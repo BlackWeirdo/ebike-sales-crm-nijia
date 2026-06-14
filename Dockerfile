@@ -3,6 +3,9 @@ FROM node:24-slim
 
 WORKDIR /app
 
+# Bỏ tải Chromium của puppeteer (chỉ dùng test local, không cần khi build/chạy cloud).
+ENV PUPPETEER_SKIP_DOWNLOAD=1
+
 # Cài deps (gồm devDeps: cần vite để build + tsx để chạy server .ts).
 COPY package.json package-lock.json ./
 RUN npm ci
