@@ -19,8 +19,9 @@ if (process.env.NODE_ENV === 'production' && existsSync(distDir)) {
 // Centralized error handler — repo/validation throws become JSON {error} responses.
 attachErrorHandler(app)
 
-app.listen(PORT, () => {
-  console.log(`[server] API listening on http://localhost:${PORT}`)
+// Bind 0.0.0.0 để fly-proxy (và mạng LAN) kết nối được — không chỉ localhost.
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`[server] API listening on http://0.0.0.0:${PORT}`)
   if (process.env.NODE_ENV !== 'production') {
     console.log(`[server] Dev UI: run "npm run dev" → http://localhost:5173`)
   }
