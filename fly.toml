@@ -1,0 +1,27 @@
+# Fly.io config — app CRM xe đạp điện. Deploy: `fly deploy`.
+# Bí mật (KHÔNG để ở đây): đặt qua `fly secrets set APP_PASSWORD=... SESSION_SECRET=...`
+app = "ebike-sales-crm-nijia"
+primary_region = "sin" # Singapore — gần Việt Nam nhất
+
+[build]
+
+[env]
+  NODE_ENV = "production"
+  PORT = "3001"
+  CRM_DB_PATH = "/data/crm.db"
+
+# Ổ đĩa bền cho SQLite — dữ liệu KHÔNG mất khi deploy lại / máy restart.
+[mounts]
+  source = "crm_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 3001
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0 # máy ngủ khi không dùng (tiết kiệm), tự thức khi có request
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

@@ -1,0 +1,11 @@
+node_modules
+dist
+data
+.git
+.claude
+veo3-manager
+landing-page
+plans
+scripts/shots
+*.log
+repomix-output.xml

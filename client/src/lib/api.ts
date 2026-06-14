@@ -74,6 +74,13 @@ export interface PaymentInput {
 }
 
 export const api = {
+  // auth (single-password gate; no-op when server runs without APP_PASSWORD)
+  auth: {
+    me: () => req<{ authed: boolean; authEnabled: boolean }>('/auth/me'),
+    login: (password: string) =>
+      req<{ ok: true }>('/auth/login', { method: 'POST', body: JSON.stringify({ password }) }),
+    logout: () => req<{ ok: true }>('/auth/logout', { method: 'POST' }),
+  },
   // products / inventory
   products: {
     list: () => req<ProductWithStock[]>('/products'),

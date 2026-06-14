@@ -12,6 +12,7 @@ import {
 import { Routes, Route, NavLink as RouterNavLink, Navigate, useLocation } from 'react-router-dom'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
 import { ColorSchemeToggle } from './components/ColorSchemeToggle.tsx'
+import { LogoutButton } from './components/LogoutButton.tsx'
 
 // Lazy-load each page → code-split heavy deps (recharts on Dashboard, xlsx on Products) into separate chunks.
 const DashboardPage = lazy(() => import('./pages/DashboardPage.tsx'))
@@ -53,7 +54,10 @@ export default function App() {
             </Text>
           </Box>
           <Box style={{ flex: 1 }} />
-          <ColorSchemeToggle />
+          <Group gap="xs">
+            <ColorSchemeToggle />
+            <LogoutButton />
+          </Group>
         </Group>
       </AppShell.Header>
 
