@@ -67,8 +67,17 @@ export const productsRepo = {
     return this.get(id)
   },
 
+  // Hard-delete a product. Refuse if it has sales history (protect financial records);
+  // otherwise drop its (unsold) serial units first to satisfy the FK, then the product.
   remove(id: number): void {
-    db.prepare('DELETE FROM products WHERE id = ?').run(id)
+    const sold = db.prepare(`SELECT 1 FROM sale_items WHERE product_id = ? LIMIT 1`).get(id)
+    if (sold) {
+      throw new Error('Sản phẩm đã phát sinh đơn bán — không thể xóa. Hãy tắt "Đang kinh doanh" để ẩn thay vì xóa.')
+    }
+    transaction(() => {
+      db.prepare('DELETE FROM inventory_units WHERE product_id = ?').run(id)
+      db.prepare('DELETE FROM products WHERE id = ?').run(id)
+    })
   },
 
   // ---- serialized units ----

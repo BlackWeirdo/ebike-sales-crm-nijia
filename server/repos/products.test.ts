@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { productsRepo } from './products.ts'
-import { resetDb, seedQtyProduct, seedSerializedProduct } from '../test/helpers.ts'
+import { salesRepo } from './sales.ts'
+import { resetDb, seedQtyProduct, seedSerializedProduct, seedCustomer } from '../test/helpers.ts'
 
 beforeEach(resetDb)
 
@@ -41,6 +42,38 @@ describe('productsRepo', () => {
     expect(productsRepo.availableUnits(productId)).toHaveLength(2)
     productsRepo.removeUnit(unitIds[0])
     expect(productsRepo.availableUnits(productId)).toHaveLength(1)
+  })
+
+  describe('remove', () => {
+    it('removes a QUANTITY product with no sales', () => {
+      const id = seedQtyProduct()
+      productsRepo.remove(id)
+      expect(productsRepo.get(id)).toBeUndefined()
+    })
+
+    it('removes a SERIALIZED product and its in_stock units when never sold', () => {
+      const { productId } = seedSerializedProduct(2)
+      productsRepo.remove(productId)
+      expect(productsRepo.get(productId)).toBeUndefined()
+      expect(productsRepo.listUnits(productId)).toHaveLength(0) // units cascaded away
+    })
+
+    it('refuses to delete a product that has sales history (protects records)', () => {
+      const { productId, unitIds } = seedSerializedProduct(1)
+      const customerId = seedCustomer()
+      salesRepo.create({
+        customerId,
+        saleDate: '2026-06-01',
+        discountVnd: 0,
+        paidVnd: 25_000_000,
+        paymentMethod: 'cash',
+        notes: null,
+        dueDate: null,
+        items: [{ productId, inventoryUnitId: unitIds[0], qty: 1, unitPriceVnd: 25_000_000, lineDiscountVnd: 0 }],
+      })
+      expect(() => productsRepo.remove(productId)).toThrow(/không thể xóa/i)
+      expect(productsRepo.get(productId)).toBeDefined() // still there
+    })
   })
 
   it('lowStock flags active products at/below threshold', () => {
