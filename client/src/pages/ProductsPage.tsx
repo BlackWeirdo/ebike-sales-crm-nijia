@@ -31,7 +31,7 @@ import { confirmDelete } from '../lib/confirm.ts'
 const EMPTY_PRODUCT: ProductInput = {
   sku: '',
   name: '',
-  type: 'SERIALIZED',
+  type: 'QUANTITY',
   color: '',
   costVnd: 0,
   sellingPriceVnd: 0,
@@ -97,7 +97,7 @@ export default function ProductsPage() {
     <>
       <PageHeader
         title="Tồn kho sản phẩm"
-        subtitle="Quản lý xe đạp điện (theo serial) và phụ kiện (theo số lượng)"
+        subtitle="Quản lý xe đạp điện & phụ kiện — theo số lượng hoặc theo serial"
         action={
           <Group gap="sm">
             <Button variant="default" leftSection={<IconFileSpreadsheet size={18} />} onClick={() => setImportOpen(true)}>
@@ -135,7 +135,7 @@ export default function ProductsPage() {
               </Table.Td>
               <Table.Td>
                 <Badge variant="light" color={p.type === 'SERIALIZED' ? 'blue' : 'grape'}>
-                  {p.type === 'SERIALIZED' ? 'Xe (serial)' : 'Phụ kiện'}
+                  {p.type === 'SERIALIZED' ? 'Theo serial' : 'Theo số lượng'}
                 </Badge>
               </Table.Td>
               <Table.Td>{p.color || '—'}</Table.Td>
@@ -187,8 +187,8 @@ export default function ProductsPage() {
             <Select
               label="Loại"
               data={[
-                { value: 'SERIALIZED', label: 'Xe đạp điện (quản lý theo serial)' },
-                { value: 'QUANTITY', label: 'Phụ kiện (quản lý theo số lượng)' },
+                { value: 'QUANTITY', label: 'Theo số lượng (bán buôn — không cần serial)' },
+                { value: 'SERIALIZED', label: 'Theo serial (định danh từng xe — cần bảo hành)' },
               ]}
               allowDeselect={false}
               {...form.getInputProps('type')}
