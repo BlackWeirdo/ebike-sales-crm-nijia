@@ -127,6 +127,7 @@ export const api = {
     list: () => req<SaleListItem[]>('/sales'),
     get: (id: number) => req<SaleDetail>(`/sales/${id}`),
     create: (data: CreateSaleInput) => req<SaleDetail>('/sales', { method: 'POST', body: JSON.stringify(data) }),
+    remove: (id: number) => req<void>(`/sales/${id}`, { method: 'DELETE' }),
   },
   // debts
   debts: {

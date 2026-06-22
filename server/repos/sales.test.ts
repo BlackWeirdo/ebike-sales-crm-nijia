@@ -91,3 +91,58 @@ describe('salesRepo.create', () => {
     ).toThrow()
   })
 })
+
+describe('salesRepo.remove', () => {
+  it('restores QUANTITY stock and removes the sale', () => {
+    const pid = seedQtyProduct({ qtyOnHand: 10, sellingPriceVnd: 150_000 })
+    const sale = salesRepo.create({
+      ...baseSale,
+      paidVnd: 300_000,
+      items: [{ productId: pid, inventoryUnitId: null, qty: 2, unitPriceVnd: 150_000, lineDiscountVnd: 0 }],
+    })
+    expect(productsRepo.get(pid)!.qtyOnHand).toBe(8)
+
+    salesRepo.remove(sale.id)
+
+    expect(productsRepo.get(pid)!.qtyOnHand).toBe(10) // restored
+    expect(salesRepo.list()).toHaveLength(0)
+    expect(salesRepo.get(sale.id)).toBeUndefined()
+  })
+
+  it('returns a SERIALIZED unit back to stock', () => {
+    const { productId, unitIds } = seedSerializedProduct(2)
+    const sale = salesRepo.create({
+      ...baseSale,
+      paidVnd: 25_000_000,
+      items: [{ productId, inventoryUnitId: unitIds[0], qty: 1, unitPriceVnd: 25_000_000, lineDiscountVnd: 0 }],
+    })
+    expect(productsRepo.availableUnits(productId)).toHaveLength(1)
+
+    salesRepo.remove(sale.id)
+
+    expect(productsRepo.availableUnits(productId)).toHaveLength(2) // unit back in stock
+  })
+
+  it('deletes the linked debt (and its payments) when removing an unpaid sale', () => {
+    const cid = seedCustomer()
+    const pid = seedQtyProduct({ qtyOnHand: 10, sellingPriceVnd: 150_000 })
+    const sale = salesRepo.create({
+      ...baseSale,
+      customerId: cid,
+      paidVnd: 100_000, // 200k debt
+      items: [{ productId: pid, inventoryUnitId: null, qty: 2, unitPriceVnd: 150_000, lineDiscountVnd: 0 }],
+    })
+    const debt = debtsRepo.getBySale(sale.id)!
+    debtsRepo.addPayment(debt.id, { paidAt: '2026-06-12T10:00', amountVnd: 50_000, method: 'cash', notes: null })
+
+    salesRepo.remove(sale.id)
+
+    expect(debtsRepo.getBySale(sale.id)).toBeNull()
+    expect(salesRepo.get(sale.id)).toBeUndefined()
+    expect(productsRepo.get(pid)!.qtyOnHand).toBe(10) // stock restored
+  })
+
+  it('throws on a non-existent sale', () => {
+    expect(() => salesRepo.remove(999)).toThrow(/không tìm thấy/i)
+  })
+})

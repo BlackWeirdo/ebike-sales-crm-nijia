@@ -147,4 +147,36 @@ export const salesRepo = {
 
     return this.get(saleId)!
   },
+
+  // Hard-delete a sale and undo its side effects (for fixing mistakes):
+  // restore inventory (serial → back in stock, quantity → += qty), drop its debt + payments,
+  // then remove sale_items and the sale itself. All atomic so a failure leaves nothing half-undone.
+  remove(id: number): void {
+    const sale = db.prepare(`SELECT id FROM sales WHERE id = ?`).get(id)
+    if (!sale) throw new Error('Không tìm thấy đơn hàng')
+
+    transaction(() => {
+      const items = db
+        .prepare(`SELECT product_id AS productId, inventory_unit_id AS inventoryUnitId, qty FROM sale_items WHERE sale_id = ?`)
+        .all(id) as Array<{ productId: number | null; inventoryUnitId: number | null; qty: number }>
+
+      for (const it of items) {
+        if (it.inventoryUnitId) {
+          // serialized unit → return to stock
+          db.prepare(`UPDATE inventory_units SET status='in_stock', sold_on_date=NULL WHERE id=?`).run(it.inventoryUnitId)
+        } else if (it.productId) {
+          // quantity product → add back the sold qty
+          db.prepare(`UPDATE products SET qty_on_hand = qty_on_hand + ? WHERE id = ?`).run(it.qty, it.productId)
+        }
+      }
+
+      // Drop debt payments first (FK → debts), then debts (FK → sales), then items, then the sale.
+      db.prepare(
+        `DELETE FROM debt_payments WHERE debt_id IN (SELECT id FROM debts WHERE sale_id = ?)`,
+      ).run(id)
+      db.prepare(`DELETE FROM debts WHERE sale_id = ?`).run(id)
+      db.prepare(`DELETE FROM sale_items WHERE sale_id = ?`).run(id)
+      db.prepare(`DELETE FROM sales WHERE id = ?`).run(id)
+    })
+  },
 }

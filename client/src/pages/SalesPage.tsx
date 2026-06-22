@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Button, Group, ActionIcon, Table, Badge } from '@mantine/core'
-import { IconPlus, IconEye, IconPrinter, IconCash } from '@tabler/icons-react'
-import { useQuery } from '@tanstack/react-query'
+import { IconPlus, IconEye, IconPrinter, IconCash, IconTrash } from '@tabler/icons-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api.ts'
 import { PageHeader } from '../components/PageHeader.tsx'
 import { ListTable } from '../components/ListTable.tsx'
@@ -9,11 +9,25 @@ import { SaleForm } from '../components/SaleForm.tsx'
 import { SaleDetailModal } from '../components/SaleDetailModal.tsx'
 import { formatVnd, formatDate } from '../lib/format.ts'
 import { printSaleInvoice } from '../lib/printInvoice.ts'
+import { confirmDelete } from '../lib/confirm.ts'
+import { toastOk, toastError } from '../lib/notify.ts'
 
 export default function SalesPage() {
+  const qc = useQueryClient()
   const { data: sales = [], isLoading } = useQuery({ queryKey: ['sales'], queryFn: api.sales.list })
   const [formOpen, setFormOpen] = useState(false)
   const [viewId, setViewId] = useState<number | null>(null)
+
+  const delMut = useMutation({
+    mutationFn: (id: number) => api.sales.remove(id),
+    onSuccess: () => {
+      // Xóa đơn ảnh hưởng tồn kho, công nợ và doanh thu → làm mới mọi nơi liên quan.
+      for (const key of [['sales'], ['products'], ['debts'], ['dashboard'], ['customers']])
+        qc.invalidateQueries({ queryKey: key })
+      toastOk('Đã xóa đơn bán')
+    },
+    onError: toastError,
+  })
 
   return (
     <>
@@ -68,6 +82,22 @@ export default function SalesPage() {
                   onClick={() => api.sales.get(s.id).then(printSaleInvoice)}
                 >
                   <IconPrinter size={18} />
+                </ActionIcon>
+                <ActionIcon
+                  variant="subtle"
+                  color="red"
+                  title="Xóa đơn"
+                  onClick={() =>
+                    confirmDelete({
+                      title: `Xóa đơn #${s.id}?`,
+                      message:
+                        `Xóa đơn sẽ hoàn lại tồn kho và gỡ bỏ công nợ + các lần thu tiền của đơn này. ` +
+                        `Doanh thu của đơn cũng bị trừ khỏi báo cáo. Hành động không thể hoàn tác.`,
+                      onConfirm: () => delMut.mutate(s.id),
+                    })
+                  }
+                >
+                  <IconTrash size={18} />
                 </ActionIcon>
               </Group>
             </Table.Td>

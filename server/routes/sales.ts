@@ -35,3 +35,8 @@ salesRouter.get('/:id', (req, res) => {
 salesRouter.post('/', (req, res) => {
   res.status(201).json(salesRepo.create(validateBody(createSchema, req.body)))
 })
+
+salesRouter.delete('/:id', (req, res) => {
+  salesRepo.remove(Number(req.params.id))
+  res.status(204).end()
+})

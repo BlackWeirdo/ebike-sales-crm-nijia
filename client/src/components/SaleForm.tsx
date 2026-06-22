@@ -151,7 +151,7 @@ export function SaleForm({ onClose }: { onClose: () => void }) {
     () =>
       products
         .filter((p) => p.active === 1 && p.unitsInStock > 0)
-        .map((p) => ({ value: String(p.id), label: `${p.name} (tồn: ${p.unitsInStock})` })),
+        .map((p) => ({ value: String(p.id), label: `[${p.sku}] ${p.name} (tồn: ${p.unitsInStock})` })),
     [products],
   )
 
