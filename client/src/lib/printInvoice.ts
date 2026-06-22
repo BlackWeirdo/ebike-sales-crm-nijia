@@ -24,6 +24,9 @@ async function loadLogoDataUrl(url: string): Promise<string | null> {
     const res = await fetch(url)
     if (!res.ok) return null
     const blob = await res.blob()
+    // Guard: when the logo file is missing, the SPA catch-all returns index.html (200).
+    // Only accept a real image so the invoice shows nothing instead of a broken-image icon.
+    if (!blob.type.startsWith('image/')) return null
     return await new Promise<string | null>((resolve) => {
       const reader = new FileReader()
       reader.onload = () => resolve(reader.result as string)
@@ -71,7 +74,7 @@ function buildInvoiceHtml(sale: SaleDetail, logo: string | null): string {
       (it, i) => `
       <tr>
         <td style="text-align:center">${i + 1}</td>
-        <td>${esc(it.productName)}${it.serialNumber ? `<div class="sn">SN: ${esc(it.serialNumber)}</div>` : ''}</td>
+        <td>${esc(it.productName)}${it.productSku ? `<div class="sn">SKU: ${esc(it.productSku)}</div>` : ''}${it.serialNumber ? `<div class="sn">SN: ${esc(it.serialNumber)}</div>` : ''}</td>
         <td style="text-align:center">${it.qty}</td>
         <td style="text-align:right">${formatVnd(it.unitPriceVnd)}</td>
         <td style="text-align:right">${formatVnd(it.lineTotalVnd)}</td>
@@ -79,7 +82,7 @@ function buildInvoiceHtml(sale: SaleDetail, logo: string | null): string {
     )
     .join('')
 
-  const shopInfoLines = [SHOP.taxCode, SHOP.address, SHOP.phone, SHOP.website]
+  const shopInfoLines = SHOP.infoLines
     .filter((l) => l && l.trim())
     .map((l) => `<div>${esc(l)}</div>`)
     .join('')

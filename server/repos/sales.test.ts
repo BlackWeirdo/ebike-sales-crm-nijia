@@ -27,6 +27,8 @@ describe('salesRepo.create', () => {
     expect(sale.totalVnd).toBe(300_000)
     expect(sale.remainingVnd).toBe(0)
     expect(productsRepo.get(pid)!.qtyOnHand).toBe(8) // 10 - 2
+    // detail items expose SKU (for the detail modal + printed invoice)
+    expect(sale.items[0].productSku).toBe(productsRepo.get(pid)!.sku)
   })
 
   it('marks a SERIALIZED unit as sold and excludes it from available', () => {

@@ -133,7 +133,7 @@ export interface SaleDebtInfo {
 export interface SaleDetail extends Sale {
   customerName: string | null
   customer: Customer | null // full customer record (for invoice / VAT details)
-  items: (SaleItem & { productName: string; serialNumber: string | null })[]
+  items: (SaleItem & { productName: string; productSku: string | null; serialNumber: string | null })[]
   collectedVnd: number
   remainingVnd: number
   debt: SaleDebtInfo | null

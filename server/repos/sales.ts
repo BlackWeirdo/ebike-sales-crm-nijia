@@ -52,7 +52,7 @@ export const salesRepo = {
                 si.inventory_unit_id AS inventoryUnitId, si.qty,
                 si.unit_price_vnd AS unitPriceVnd, si.line_discount_vnd AS lineDiscountVnd,
                 si.line_total_vnd AS lineTotalVnd,
-                p.name AS productName, u.serial_number AS serialNumber
+                p.name AS productName, p.sku AS productSku, u.serial_number AS serialNumber
          FROM sale_items si
          LEFT JOIN products p ON p.id = si.product_id
          LEFT JOIN inventory_units u ON u.id = si.inventory_unit_id
