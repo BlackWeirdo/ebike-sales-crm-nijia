@@ -17,7 +17,11 @@ export function DashboardProductCharts({ from, to }: { from: string; to: string 
   const revByTypeDonut = (prod?.revenueByType ?? [])
     .filter((r) => r.revenueVnd > 0)
     .map((r) => ({ name: PRODUCT_TYPE[r.type].label, value: r.revenueVnd, color: r.type === 'SERIALIZED' ? 'teal.6' : 'grape.6' }))
-  const topData = (prod?.topProducts ?? []).map((p) => ({ name: p.name, 'Doanh thu': p.revenueVnd, 'Số lượng': p.qty }))
+  const topData = (prod?.topProducts ?? []).map((p) => ({
+    name: p.sku ? `${p.name} - ${p.sku}` : p.name,
+    'Doanh thu': p.revenueVnd,
+    'Số lượng': p.qty,
+  }))
   const stockStatusDonut = prod
     ? [
         { name: 'Đủ hàng', value: prod.stockStatus.healthy, color: 'teal.6' },

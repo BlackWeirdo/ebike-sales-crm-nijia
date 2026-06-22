@@ -156,7 +156,7 @@ export interface DashboardSummary {
   newCustomers: number
   outstandingDebtVnd: number // total unpaid balance (all time)
   lowStockCount: number
-  topProducts: { name: string; qty: number; revenueVnd: number }[]
+  topProducts: { name: string; sku: string; qty: number; revenueVnd: number }[]
 }
 
 export interface RevenuePoint {
@@ -181,7 +181,7 @@ export interface ProductAnalytics {
   // Doanh thu + số lượng theo loại sản phẩm (trong khoảng)
   revenueByType: { type: ProductType; revenueVnd: number; qty: number }[]
   // Top sản phẩm theo số lượng & doanh thu (trong khoảng)
-  topProducts: { name: string; qty: number; revenueVnd: number }[]
+  topProducts: { name: string; sku: string; qty: number; revenueVnd: number }[]
   // Tình trạng tồn kho hiện tại (point-in-time)
   stockStatus: { healthy: number; low: number; out: number }
   // Giá trị tồn kho theo SP = giá vốn × tồn (point-in-time), top theo giá trị

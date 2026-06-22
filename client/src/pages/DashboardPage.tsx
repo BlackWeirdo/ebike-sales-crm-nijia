@@ -124,6 +124,7 @@ export default function DashboardPage() {
                         <Stack gap={0}>
                           <Text size="sm" fw={500} lineClamp={1}>
                             {p.name}
+                            {p.sku ? ` - ${p.sku}` : ''}
                           </Text>
                           <Text size="xs" c="dimmed">
                             {p.qty} cái

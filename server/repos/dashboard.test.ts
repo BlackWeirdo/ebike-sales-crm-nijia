@@ -44,6 +44,8 @@ describe('dashboardRepo', () => {
     expect(s.collectedVnd).toBe(25_000_000)
     expect(s.outstandingDebtVnd).toBe(300_000)
     expect(s.topProducts.length).toBeGreaterThan(0)
+    // mỗi top SP phải kèm SKU (để phân biệt SP trùng tên)
+    expect(s.topProducts.every((p) => typeof p.sku === 'string' && p.sku.length > 0)).toBe(true)
   })
 
   it('customerAnalytics returns both types, top customers and debt split', () => {
@@ -65,6 +67,8 @@ describe('dashboardRepo', () => {
     // 1 serial sold of 2 → 1 in stock; phụ kiện 10-2=8 in stock → both healthy
     expect(a.stockStatus.healthy + a.stockStatus.low + a.stockStatus.out).toBe(2)
     expect(a.stockValue.length).toBeGreaterThan(0)
+    // top SP kèm SKU
+    expect(a.topProducts.every((p) => typeof p.sku === 'string' && p.sku.length > 0)).toBe(true)
   })
 
   it('range filter excludes out-of-range sales from revenue', () => {

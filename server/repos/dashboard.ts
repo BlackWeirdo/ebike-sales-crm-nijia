@@ -34,14 +34,14 @@ export const dashboardRepo = {
 
     const topProducts = db
       .prepare(
-        `SELECT p.name AS name, SUM(si.qty) AS qty, SUM(si.line_total_vnd) AS revenueVnd
+        `SELECT p.name AS name, p.sku AS sku, SUM(si.qty) AS qty, SUM(si.line_total_vnd) AS revenueVnd
          FROM sale_items si
          JOIN sales s ON s.id = si.sale_id
          JOIN products p ON p.id = si.product_id
          WHERE s.sale_date BETWEEN ? AND ?
          GROUP BY si.product_id ORDER BY revenueVnd DESC LIMIT 5`,
       )
-      .all(from, to) as { name: string; qty: number; revenueVnd: number }[]
+      .all(from, to) as { name: string; sku: string; qty: number; revenueVnd: number }[]
 
     return {
       from,
@@ -141,14 +141,14 @@ export const dashboardRepo = {
 
     const topProducts = db
       .prepare(
-        `SELECT p.name AS name, SUM(si.qty) AS qty, SUM(si.line_total_vnd) AS revenueVnd
+        `SELECT p.name AS name, p.sku AS sku, SUM(si.qty) AS qty, SUM(si.line_total_vnd) AS revenueVnd
          FROM sale_items si
          JOIN sales s ON s.id = si.sale_id
          JOIN products p ON p.id = si.product_id
          WHERE s.sale_date BETWEEN ? AND ?
          GROUP BY si.product_id ORDER BY revenueVnd DESC LIMIT 8`,
       )
-      .all(from, to) as { name: string; qty: number; revenueVnd: number }[]
+      .all(from, to) as { name: string; sku: string; qty: number; revenueVnd: number }[]
 
     // Tình trạng + giá trị tồn dùng chung danh sách SP (đã tính tồn kho thực tế).
     const products = productsRepo.list().filter((p) => p.active)

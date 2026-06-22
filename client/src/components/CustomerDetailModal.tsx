@@ -148,6 +148,7 @@ export function CustomerDetailModal({ id, onClose }: { id: number; onClose: () =
                               <Table.Tr key={it.id}>
                                 <Table.Td>
                                   {it.productName}
+                                  {it.productSku ? ` - ${it.productSku}` : ''}
                                   {it.serialNumber && (
                                     <Text size="xs" c="dimmed">
                                       SN: {it.serialNumber}
