@@ -39,11 +39,7 @@ export function SaleDetailModal({ id, onClose }: { id: number; onClose: () => vo
                 <Table.Tr key={it.id}>
                   <Table.Td>
                     {it.productName}
-                    {it.productSku && (
-                      <Text size="xs" c="dimmed">
-                        SKU: {it.productSku}
-                      </Text>
-                    )}
+                    {it.productSku ? ` - ${it.productSku}` : ''}
                     {it.serialNumber && (
                       <Text size="xs" c="dimmed">
                         SN: {it.serialNumber}

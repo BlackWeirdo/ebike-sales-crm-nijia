@@ -28,6 +28,7 @@ import { toastOk, toastError } from '../lib/notify.ts'
 interface CartLine extends SaleItemInput {
   key: string
   productName: string
+  productSku: string
   type: ProductWithStock['type']
   serialNumber?: string
 }
@@ -111,6 +112,7 @@ export function SaleForm({ onClose }: { onClose: () => void }) {
           unitPriceVnd: selectedProduct.sellingPriceVnd,
           lineDiscountVnd: 0,
           productName: selectedProduct.name,
+          productSku: selectedProduct.sku,
           type: 'SERIALIZED',
           serialNumber: unit.serialNumber,
         },
@@ -131,6 +133,7 @@ export function SaleForm({ onClose }: { onClose: () => void }) {
           unitPriceVnd: selectedProduct.sellingPriceVnd,
           lineDiscountVnd: 0,
           productName: selectedProduct.name,
+          productSku: selectedProduct.sku,
           type: 'QUANTITY',
         },
       ])
@@ -227,6 +230,7 @@ export function SaleForm({ onClose }: { onClose: () => void }) {
                     <Table.Td>
                       <Text size="sm" fw={600}>
                         {l.productName}
+                        {l.productSku ? ` - ${l.productSku}` : ''}
                       </Text>
                       {l.serialNumber && (
                         <Text size="xs" c="dimmed">

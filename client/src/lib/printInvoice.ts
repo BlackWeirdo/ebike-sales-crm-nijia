@@ -74,7 +74,7 @@ function buildInvoiceHtml(sale: SaleDetail, logo: string | null): string {
       (it, i) => `
       <tr>
         <td style="text-align:center">${i + 1}</td>
-        <td>${esc(it.productName)}${it.productSku ? `<div class="sn">SKU: ${esc(it.productSku)}</div>` : ''}${it.serialNumber ? `<div class="sn">SN: ${esc(it.serialNumber)}</div>` : ''}</td>
+        <td>${esc(it.productName)}${it.productSku ? ` - ${esc(it.productSku)}` : ''}${it.serialNumber ? `<div class="sn">SN: ${esc(it.serialNumber)}</div>` : ''}</td>
         <td style="text-align:center">${it.qty}</td>
         <td style="text-align:right">${formatVnd(it.unitPriceVnd)}</td>
         <td style="text-align:right">${formatVnd(it.lineTotalVnd)}</td>
