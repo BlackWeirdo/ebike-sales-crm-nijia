@@ -11,6 +11,7 @@ import { printSaleInvoice } from '../lib/printInvoice.ts'
 export function SaleDetailModal({ id, onClose }: { id: number; onClose: () => void }) {
   const { data, isLoading } = useQuery({ queryKey: ['sale', id], queryFn: () => api.sales.get(id) })
   const balance = data ? data.remainingVnd : 0
+  const hasLineDiscount = data ? data.items.some((it) => it.lineDiscountVnd > 0) : false
   return (
     <Modal opened onClose={onClose} title={`Đơn bán #${id}`} centered size="lg">
       {isLoading || !data ? (
@@ -31,6 +32,7 @@ export function SaleDetailModal({ id, onClose }: { id: number; onClose: () => vo
                 <Table.Th>Sản phẩm</Table.Th>
                 <Table.Th>SL</Table.Th>
                 <Table.Th>Đơn giá</Table.Th>
+                {hasLineDiscount && <Table.Th>Giảm</Table.Th>}
                 <Table.Th>Thành tiền</Table.Th>
               </Table.Tr>
             </Table.Thead>
@@ -48,6 +50,9 @@ export function SaleDetailModal({ id, onClose }: { id: number; onClose: () => vo
                   </Table.Td>
                   <Table.Td>{it.qty}</Table.Td>
                   <Table.Td>{formatVnd(it.unitPriceVnd)}</Table.Td>
+                  {hasLineDiscount && (
+                    <Table.Td>{it.lineDiscountVnd > 0 ? `- ${formatVnd(it.lineDiscountVnd)}` : '-'}</Table.Td>
+                  )}
                   <Table.Td>{formatVnd(it.lineTotalVnd)}</Table.Td>
                 </Table.Tr>
               ))}
@@ -56,6 +61,16 @@ export function SaleDetailModal({ id, onClose }: { id: number; onClose: () => vo
           <Divider />
           <Group justify="flex-end" gap="xl">
             <Stack gap={2} align="flex-end">
+              {data.discountVnd > 0 && (
+                <>
+                  <Text size="sm" c="dimmed">
+                    Tạm tính: {formatVnd(data.subtotalVnd)}
+                  </Text>
+                  <Text size="sm" c="dimmed">
+                    Giảm giá: - {formatVnd(data.discountVnd)}
+                  </Text>
+                </>
+              )}
               <Text size="sm" c="dimmed">
                 Tổng: <b>{formatVnd(data.totalVnd)}</b>
               </Text>

@@ -32,6 +32,7 @@ const EMPTY_PRODUCT: ProductInput = {
   sku: '',
   name: '',
   type: 'QUANTITY',
+  category: 'bike',
   color: '',
   costVnd: 0,
   sellingPriceVnd: 0,
@@ -83,6 +84,7 @@ export default function ProductsPage() {
       sku: p.sku,
       name: p.name,
       type: p.type,
+      category: p.category,
       color: p.color ?? '',
       costVnd: p.costVnd,
       sellingPriceVnd: p.sellingPriceVnd,
@@ -122,7 +124,7 @@ export default function ProductsPage() {
             <Table.Tr key={p.id}>
               <Table.Td>
                 <Group gap="xs">
-                  {p.type === 'SERIALIZED' ? <IconBike size={18} /> : <IconPackage size={18} />}
+                  {p.category === 'bike' ? <IconBike size={18} /> : <IconPackage size={18} />}
                   <div>
                     <Text fw={600} size="sm">
                       {p.name}
@@ -134,9 +136,14 @@ export default function ProductsPage() {
                 </Group>
               </Table.Td>
               <Table.Td>
-                <Badge variant="light" color={p.type === 'SERIALIZED' ? 'blue' : 'grape'}>
-                  {p.type === 'SERIALIZED' ? 'Theo serial' : 'Theo số lượng'}
-                </Badge>
+                <Group gap={6}>
+                  <Badge variant="light" color={p.category === 'bike' ? 'teal' : 'grape'}>
+                    {p.category === 'bike' ? 'Xe' : 'Phụ kiện'}
+                  </Badge>
+                  <Text size="xs" c="dimmed">
+                    {p.type === 'SERIALIZED' ? 'serial' : 'số lượng'}
+                  </Text>
+                </Group>
               </Table.Td>
               <Table.Td>{p.color || '—'}</Table.Td>
               <Table.Td>{formatVnd(p.costVnd)}</Table.Td>
@@ -185,7 +192,17 @@ export default function ProductsPage() {
             <TextInput label="Tên sản phẩm" required {...form.getInputProps('name')} />
             <TextInput label="Mã SKU" required {...form.getInputProps('sku')} />
             <Select
-              label="Loại"
+              label="Danh mục"
+              description="Dùng cho biểu đồ doanh thu theo loại SP"
+              data={[
+                { value: 'bike', label: 'Xe' },
+                { value: 'accessory', label: 'Phụ kiện' },
+              ]}
+              allowDeselect={false}
+              {...form.getInputProps('category')}
+            />
+            <Select
+              label="Cách quản lý tồn kho"
               data={[
                 { value: 'QUANTITY', label: 'Theo số lượng (bán buôn — không cần serial)' },
                 { value: 'SERIALIZED', label: 'Theo serial (định danh từng xe — cần bảo hành)' },

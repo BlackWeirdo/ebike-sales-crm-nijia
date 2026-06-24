@@ -28,6 +28,11 @@ function ensureColumn(table: string, column: string, ddl: string): void {
   }
 }
 ensureColumn('products', 'color', 'color TEXT')
+// Business category, independent of storage `type`. Existing rows default to 'bike'
+// (e-bike shop → most products are bikes; user re-tags the few accessories).
+// DEFAULT (without NOT NULL) backfills existing rows AND works on every SQLite version;
+// NOT NULL is enforced for new DBs by schema.sql and at the app layer.
+ensureColumn('products', 'category', "category TEXT DEFAULT 'bike'")
 ensureColumn('customers', 'type', "type TEXT NOT NULL DEFAULT 'individual'")
 ensureColumn('customers', 'contact_person', 'contact_person TEXT')
 ensureColumn('customers', 'tax_code', 'tax_code TEXT')

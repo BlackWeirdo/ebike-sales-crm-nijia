@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Button, Group, ActionIcon, Table, Badge } from '@mantine/core'
-import { IconPlus, IconEye, IconPrinter, IconCash, IconTrash } from '@tabler/icons-react'
+import { IconPlus, IconEye, IconPrinter, IconCash, IconTrash, IconPencil } from '@tabler/icons-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api.ts'
 import { PageHeader } from '../components/PageHeader.tsx'
@@ -17,6 +17,7 @@ export default function SalesPage() {
   const { data: sales = [], isLoading } = useQuery({ queryKey: ['sales'], queryFn: api.sales.list })
   const [formOpen, setFormOpen] = useState(false)
   const [viewId, setViewId] = useState<number | null>(null)
+  const [editId, setEditId] = useState<number | null>(null)
 
   const delMut = useMutation({
     mutationFn: (id: number) => api.sales.remove(id),
@@ -75,6 +76,9 @@ export default function SalesPage() {
                 <ActionIcon variant="subtle" onClick={() => setViewId(s.id)} title="Xem chi tiết">
                   <IconEye size={18} />
                 </ActionIcon>
+                <ActionIcon variant="subtle" color="blue" onClick={() => setEditId(s.id)} title="Sửa đơn">
+                  <IconPencil size={18} />
+                </ActionIcon>
                 <ActionIcon
                   variant="subtle"
                   color="teal"
@@ -106,6 +110,7 @@ export default function SalesPage() {
       </ListTable>
 
       {formOpen && <SaleForm onClose={() => setFormOpen(false)} />}
+      {editId && <SaleForm editId={editId} onClose={() => setEditId(null)} />}
       {viewId && <SaleDetailModal id={viewId} onClose={() => setViewId(null)} />}
     </>
   )

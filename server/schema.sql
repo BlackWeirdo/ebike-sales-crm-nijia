@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS products (
   sku                 TEXT NOT NULL UNIQUE,
   name                TEXT NOT NULL,
   type                TEXT NOT NULL CHECK (type IN ('SERIALIZED','QUANTITY')),
+  category            TEXT NOT NULL DEFAULT 'bike' CHECK (category IN ('bike','accessory')),
   color               TEXT,
   cost_vnd            INTEGER NOT NULL DEFAULT 0,
   selling_price_vnd   INTEGER NOT NULL DEFAULT 0,

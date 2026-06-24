@@ -1,7 +1,8 @@
 // Shared domain types — single source of truth for server + client.
 // Money is INTEGER VND everywhere. Dates are ISO TEXT 'YYYY-MM-DD'.
 
-export type ProductType = 'SERIALIZED' | 'QUANTITY'
+export type ProductType = 'SERIALIZED' | 'QUANTITY' // storage mode (track by serial vs by quantity)
+export type ProductCategory = 'bike' | 'accessory' // business category (xe vs phụ kiện) — independent of storage mode
 export type CustomerType = 'individual' | 'dealer'
 export type UnitStatus = 'in_stock' | 'sold' | 'reserved' | 'returned'
 export type PaymentMethod = 'cash' | 'transfer' | 'mixed'
@@ -13,6 +14,7 @@ export interface Product {
   sku: string
   name: string
   type: ProductType
+  category: ProductCategory
   color: string | null
   costVnd: number
   sellingPriceVnd: number
@@ -178,8 +180,8 @@ export interface CustomerAnalytics {
 }
 
 export interface ProductAnalytics {
-  // Doanh thu + số lượng theo loại sản phẩm (trong khoảng)
-  revenueByType: { type: ProductType; revenueVnd: number; qty: number }[]
+  // Doanh thu + số lượng theo danh mục sản phẩm (Xe / Phụ kiện) trong khoảng
+  revenueByCategory: { category: ProductCategory; revenueVnd: number; qty: number }[]
   // Top sản phẩm theo số lượng & doanh thu (trong khoảng)
   topProducts: { name: string; sku: string; qty: number; revenueVnd: number }[]
   // Tình trạng tồn kho hiện tại (point-in-time)
@@ -194,6 +196,7 @@ export interface ImportProductRow {
   sku: string
   name: string
   type: ProductType
+  category?: ProductCategory // optional in import; defaults to 'bike' when omitted
   color: string | null
   costVnd: number
   sellingPriceVnd: number

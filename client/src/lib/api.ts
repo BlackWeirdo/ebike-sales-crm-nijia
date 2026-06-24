@@ -41,6 +41,7 @@ export interface ProductInput {
   sku: string
   name: string
   type: 'SERIALIZED' | 'QUANTITY'
+  category: 'bike' | 'accessory'
   color: string | null
   costVnd: number
   sellingPriceVnd: number
@@ -127,6 +128,8 @@ export const api = {
     list: () => req<SaleListItem[]>('/sales'),
     get: (id: number) => req<SaleDetail>(`/sales/${id}`),
     create: (data: CreateSaleInput) => req<SaleDetail>('/sales', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: number, data: CreateSaleInput) =>
+      req<SaleDetail>(`/sales/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     remove: (id: number) => req<void>(`/sales/${id}`, { method: 'DELETE' }),
   },
   // debts

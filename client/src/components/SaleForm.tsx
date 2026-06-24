@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Table,
   Button,
@@ -33,11 +33,21 @@ interface CartLine extends SaleItemInput {
   serialNumber?: string
 }
 
-/** Modal tạo đơn bán: chọn khách, thêm sản phẩm vào giỏ, tính tiền, ghi nhận thanh toán. */
-export function SaleForm({ onClose }: { onClose: () => void }) {
+/**
+ * Modal tạo HOẶC sửa đơn bán: chọn khách, thêm sản phẩm vào giỏ, tính tiền, ghi nhận thanh toán.
+ * Truyền `editId` để sửa đơn cũ (vd áp chiết khấu hồi tố). Khi sửa, hệ thống hoàn tả tồn kho cũ +
+ * dựng lại công nợ; số tiền đã thu được gộp vào "Khách trả" nên không mất tiền, chỉ mất chi tiết từng lần.
+ */
+export function SaleForm({ onClose, editId }: { onClose: () => void; editId?: number }) {
   const qc = useQueryClient()
+  const isEdit = editId != null
   const { data: products = [] } = useQuery({ queryKey: ['products'], queryFn: api.products.list })
   const { data: customers = [] } = useQuery({ queryKey: ['customers', ''], queryFn: () => api.customers.list() })
+  const { data: editSale } = useQuery({
+    queryKey: ['sale', editId],
+    queryFn: () => api.sales.get(editId!),
+    enabled: isEdit,
+  })
 
   const [customerId, setCustomerId] = useState<string | null>(null)
   const [saleDate, setSaleDate] = useState(today())
@@ -47,6 +57,38 @@ export function SaleForm({ onClose }: { onClose: () => void }) {
   const [dueDate, setDueDate] = useState('')
   const [notes, setNotes] = useState('')
   const [cart, setCart] = useState<CartLine[]>([])
+  const [hydrated, setHydrated] = useState(false)
+  // Whether the edited sale had recorded installment payments (warn they'll be consolidated).
+  const hadInstallments = (editSale?.debt?.payments.length ?? 0) > 0
+
+  // Pre-fill the form once from the existing sale + products (edit mode only).
+  useEffect(() => {
+    if (!isEdit || hydrated || !editSale || products.length === 0) return
+    setCustomerId(editSale.customerId != null ? String(editSale.customerId) : null)
+    setSaleDate(editSale.saleDate)
+    setPaymentMethod(editSale.paymentMethod)
+    setDiscountVnd(editSale.discountVnd)
+    setPaidVnd(Math.min(editSale.collectedVnd, editSale.totalVnd)) // preserve money already collected
+    setDueDate(editSale.debt?.dueDate ?? '')
+    setNotes(editSale.notes ?? '')
+    setCart(
+      editSale.items
+        .filter((it) => it.productId != null)
+        .map((it) => ({
+          key: it.inventoryUnitId ? `u${it.inventoryUnitId}` : `p${it.productId}-${it.id}`,
+          productId: it.productId as number,
+          inventoryUnitId: it.inventoryUnitId,
+          qty: it.qty,
+          unitPriceVnd: it.unitPriceVnd,
+          lineDiscountVnd: it.lineDiscountVnd,
+          productName: it.productName,
+          productSku: it.productSku ?? '',
+          type: products.find((p) => p.id === it.productId)?.type ?? (it.inventoryUnitId ? 'SERIALIZED' : 'QUANTITY'),
+          serialNumber: it.serialNumber ?? undefined,
+        })),
+    )
+    setHydrated(true)
+  }, [isEdit, hydrated, editSale, products])
 
   // line-add controls
   const [pickProduct, setPickProduct] = useState<string | null>(null)
@@ -64,9 +106,9 @@ export function SaleForm({ onClose }: { onClose: () => void }) {
   const total = Math.max(0, subtotal - discountVnd)
   const balance = Math.max(0, total - paidVnd)
 
-  const createMut = useMutation({
-    mutationFn: () =>
-      api.sales.create({
+  const saveMut = useMutation({
+    mutationFn: () => {
+      const payload = {
         customerId: customerId ? Number(customerId) : null,
         saleDate,
         discountVnd,
@@ -81,10 +123,14 @@ export function SaleForm({ onClose }: { onClose: () => void }) {
           unitPriceVnd: l.unitPriceVnd,
           lineDiscountVnd: l.lineDiscountVnd,
         })),
-      }),
+      }
+      return isEdit ? api.sales.update(editId!, payload) : api.sales.create(payload)
+    },
     onSuccess: () => {
-      for (const key of [['sales'], ['products'], ['debts'], ['dashboard']]) qc.invalidateQueries({ queryKey: key })
-      toastOk('Đã tạo đơn bán')
+      for (const key of [['sales'], ['products'], ['debts'], ['dashboard'], ['customers']])
+        qc.invalidateQueries({ queryKey: key })
+      if (isEdit) qc.invalidateQueries({ queryKey: ['sale', editId] })
+      toastOk(isEdit ? 'Đã cập nhật đơn bán' : 'Đã tạo đơn bán')
       onClose()
     },
     onError: toastError,
@@ -161,8 +207,20 @@ export function SaleForm({ onClose }: { onClose: () => void }) {
   const canSubmit = cart.length > 0 && (balance === 0 || !!customerId)
 
   return (
-    <Modal opened onClose={onClose} title="Tạo đơn bán" size="xl" centered>
+    <Modal opened onClose={onClose} title={isEdit ? `Sửa đơn bán #${editId}` : 'Tạo đơn bán'} size="xl" centered>
       <Stack>
+        {isEdit && hadInstallments && (
+          <Alert icon={<IconAlertCircle size={16} />} color="yellow" py="xs">
+            Đơn này đã có lịch sử thu nợ nhiều lần. Lưu thay đổi sẽ gộp các lần thu thành 1 số "Khách trả" (
+            {formatVnd(editSale?.collectedVnd ?? 0)}) — không mất tiền, chỉ mất chi tiết từng lần.
+          </Alert>
+        )}
+        {isEdit && editSale && editSale.collectedVnd > total && (
+          <Alert icon={<IconAlertCircle size={16} />} color="orange" py="xs">
+            Khách đã trả {formatVnd(editSale.collectedVnd)} — nhiều hơn tổng mới {formatVnd(total)}. Thừa{' '}
+            {formatVnd(editSale.collectedVnd - total)} cần hoàn lại cho khách (ngoài hệ thống).
+          </Alert>
+        )}
         <Group grow align="flex-start">
           <Select
             label="Khách hàng"
@@ -359,11 +417,11 @@ export function SaleForm({ onClose }: { onClose: () => void }) {
           </Button>
           <Button
             leftSection={<IconShoppingCart size={18} />}
-            onClick={() => createMut.mutate()}
-            loading={createMut.isPending}
+            onClick={() => saveMut.mutate()}
+            loading={saveMut.isPending}
             disabled={!canSubmit}
           >
-            Hoàn tất đơn bán
+            {isEdit ? 'Lưu thay đổi' : 'Hoàn tất đơn bán'}
           </Button>
         </Group>
       </Stack>

@@ -4,7 +4,7 @@ import { IconBox } from '@tabler/icons-react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api.ts'
 import { ChartCard, SectionTitle } from './ChartCard.tsx'
-import { PRODUCT_TYPE } from '../lib/labels.ts'
+import { PRODUCT_CATEGORY } from '../lib/labels.ts'
 import { formatVnd, formatNumber } from '../lib/format.ts'
 
 /** Nhóm biểu đồ phân tích sản phẩm trên trang Tổng quan. */
@@ -14,9 +14,9 @@ export function DashboardProductCharts({ from, to }: { from: string; to: string 
     queryFn: () => api.dashboard.productAnalytics(from, to),
   })
 
-  const revByTypeDonut = (prod?.revenueByType ?? [])
+  const revByCategoryDonut = (prod?.revenueByCategory ?? [])
     .filter((r) => r.revenueVnd > 0)
-    .map((r) => ({ name: PRODUCT_TYPE[r.type].label, value: r.revenueVnd, color: r.type === 'SERIALIZED' ? 'teal.6' : 'grape.6' }))
+    .map((r) => ({ name: PRODUCT_CATEGORY[r.category].label, value: r.revenueVnd, color: r.category === 'bike' ? 'teal.6' : 'grape.6' }))
   const topData = (prod?.topProducts ?? []).map((p) => ({
     name: p.sku ? `${p.name} - ${p.sku}` : p.name,
     'Doanh thu': p.revenueVnd,
@@ -39,23 +39,23 @@ export function DashboardProductCharts({ from, to }: { from: string; to: string 
       </SectionTitle>
       <Grid mb="xl">
         <Grid.Col span={{ base: 12, md: 4 }}>
-          <ChartCard title="Doanh thu theo loại SP" empty={revByTypeDonut.length === 0}>
+          <ChartCard title="Doanh thu theo loại SP" empty={revByCategoryDonut.length === 0}>
             <Group justify="center" my="sm">
-              <DonutChart data={revByTypeDonut} size={170} thickness={28} withTooltip valueFormatter={(v) => formatVnd(v)} />
+              <DonutChart data={revByCategoryDonut} size={170} thickness={28} withTooltip valueFormatter={(v) => formatVnd(v)} />
             </Group>
             <Stack gap={4}>
-              {(prod?.revenueByType ?? []).map((r) => (
-                <Group key={r.type} justify="space-between">
+              {(prod?.revenueByCategory ?? []).map((r) => (
+                <Group key={r.category} justify="space-between">
                   <Group gap={6}>
                     <Box
                       w={10}
                       h={10}
                       style={{
                         borderRadius: 2,
-                        background: r.type === 'SERIALIZED' ? 'var(--mantine-color-teal-6)' : 'var(--mantine-color-grape-6)',
+                        background: r.category === 'bike' ? 'var(--mantine-color-teal-6)' : 'var(--mantine-color-grape-6)',
                       }}
                     />
-                    <Text size="sm">{PRODUCT_TYPE[r.type].label}</Text>
+                    <Text size="sm">{PRODUCT_CATEGORY[r.category].label}</Text>
                   </Group>
                   <Text size="sm" c="dimmed">
                     {r.qty} cái · {formatVnd(r.revenueVnd)}

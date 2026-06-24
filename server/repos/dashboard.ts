@@ -5,7 +5,7 @@ import type {
   CustomerAnalytics,
   ProductAnalytics,
   CustomerType,
-  ProductType,
+  ProductCategory,
 } from '@shared/types'
 import { productsRepo } from './products.ts'
 
@@ -124,19 +124,21 @@ export const dashboardRepo = {
   },
 
   productAnalytics(from: string, to: string): ProductAnalytics {
-    const revByTypeRows = db
+    // Group by business category (Xe / Phụ kiện), not storage type — a bike sold in bulk
+    // is stored as QUANTITY but must still count as a bike in revenue analytics.
+    const revByCatRows = db
       .prepare(
-        `SELECT p.type AS type, COALESCE(SUM(si.line_total_vnd), 0) AS revenueVnd,
+        `SELECT p.category AS category, COALESCE(SUM(si.line_total_vnd), 0) AS revenueVnd,
                 COALESCE(SUM(si.qty), 0) AS qty
          FROM sale_items si
          JOIN sales s ON s.id = si.sale_id
          JOIN products p ON p.id = si.product_id
          WHERE s.sale_date BETWEEN ? AND ?
-         GROUP BY p.type`,
+         GROUP BY p.category`,
       )
-      .all(from, to) as { type: ProductType; revenueVnd: number; qty: number }[]
-    const revenueByType = (['SERIALIZED', 'QUANTITY'] as ProductType[]).map(
-      (t) => revByTypeRows.find((r) => r.type === t) ?? { type: t, revenueVnd: 0, qty: 0 },
+      .all(from, to) as { category: ProductCategory; revenueVnd: number; qty: number }[]
+    const revenueByCategory = (['bike', 'accessory'] as ProductCategory[]).map(
+      (c) => revByCatRows.find((r) => r.category === c) ?? { category: c, revenueVnd: 0, qty: 0 },
     )
 
     const topProducts = db
@@ -166,6 +168,6 @@ export const dashboardRepo = {
       .sort((a, b) => b.valueVnd - a.valueVnd)
       .slice(0, 8)
 
-    return { revenueByType, topProducts, stockStatus: { healthy, low, out }, stockValue }
+    return { revenueByCategory, topProducts, stockStatus: { healthy, low, out }, stockValue }
   },
 }

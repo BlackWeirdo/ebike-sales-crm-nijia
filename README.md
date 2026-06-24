@@ -120,16 +120,19 @@ shared/
 - Biểu đồ doanh thu theo thời gian + top sản phẩm bán chạy
 - **8 biểu đồ phân tích** (donut/bar/composite):
   - Phân tích khách hàng: doanh thu theo loại KH, top KH, KH mới theo tháng, phân bố giá trị đơn hàng
-  - Phân tích sản phẩm: doanh thu theo danh mục, top SP, phân bố loại SP, tồn kho theo danh mục
+  - Phân tích sản phẩm: doanh thu theo danh mục (`Xe` / `Phụ kiện`), top SP, phân bố loại SP, tồn kho theo danh mục
 - Chọn khoảng thời gian linh hoạt
 
 ### Tồn kho
-- Xe đạp điện quản lý theo *serial* (mỗi xe 1 mã); phụ kiện quản lý theo *số lượng*
+- Mỗi sản phẩm có **danh mục** (`Xe` / `Phụ kiện`) — phân loại kinh doanh, độc lập với cách theo dõi tồn kho
+- Theo dõi tồn kho theo **loại lưu trữ**: `SERIALIZED` (mỗi chiếc 1 serial) hoặc `QUANTITY` (đếm số lượng) — xe có thể dùng serial hoặc số lượng, phụ kiện tương tự
 - Mỗi SP có màu sắc, ngưỡng tồn cảnh báo
-- **Nhập Excel số lượng lớn:** tải file mẫu (.xlsx) — 2 sheet `SanPham` + `SerialXe`; kiểm tra toàn bộ trước khi lưu
+- **Nhập Excel số lượng lớn:** tải file mẫu (.xlsx) — 2 sheet `SanPham` (cột `DanhMục`) + `SerialXe`; kiểm tra toàn bộ trước khi lưu
 
 ### Bán hàng
 - Tạo đơn → trừ tồn kho tự động → nếu trả thiếu tự sinh công nợ
+- **Sửa đơn đã tạo:** nút bút chì trên danh sách đơn → mở lại form, áp dụng thay đổi nguyên tử (hoàn tồn → xóa nợ cũ → cập nhật đơn → ghi lại tồn + nợ mới); dùng cho chiết khấu hồi tố
+- Lịch sử trả từng đợt gộp vào "Khách trả" khi sửa; server chặn giảm tiền khách trả xuống dưới số đã thu thực tế
 - Xem chi tiết đơn → quản lý thanh toán: thêm/sửa/xóa lần trả (ngày giờ, số tiền, hình thức)
 - "Đã trả" và "Còn nợ" tự cập nhật khớp mọi nơi
 

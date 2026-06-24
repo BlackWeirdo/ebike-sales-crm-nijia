@@ -9,7 +9,7 @@ import type {
 } from '@shared/types'
 
 const PRODUCT_COLS = `
-  id, sku, name, type, color,
+  id, sku, name, type, category, color,
   cost_vnd AS costVnd, selling_price_vnd AS sellingPriceVnd,
   qty_on_hand AS qtyOnHand, low_stock_threshold AS lowStockThreshold,
   active, created_at AS createdAt`
@@ -22,6 +22,7 @@ export interface ProductInput {
   sku: string
   name: string
   type: 'SERIALIZED' | 'QUANTITY'
+  category: 'bike' | 'accessory'
   color: string | null
   costVnd: number
   sellingPriceVnd: number
@@ -51,8 +52,8 @@ export const productsRepo = {
   create(input: ProductInput): Product {
     const info = db
       .prepare(
-        `INSERT INTO products (sku, name, type, color, cost_vnd, selling_price_vnd, qty_on_hand, low_stock_threshold, active, created_at)
-         VALUES (@sku, @name, @type, @color, @costVnd, @sellingPriceVnd, @qtyOnHand, @lowStockThreshold, @active, @createdAt)`,
+        `INSERT INTO products (sku, name, type, category, color, cost_vnd, selling_price_vnd, qty_on_hand, low_stock_threshold, active, created_at)
+         VALUES (@sku, @name, @type, @category, @color, @costVnd, @sellingPriceVnd, @qtyOnHand, @lowStockThreshold, @active, @createdAt)`,
       )
       .run({ ...input, createdAt: new Date().toISOString().slice(0, 10) })
     return this.get(Number(info.lastInsertRowid))!
@@ -60,7 +61,7 @@ export const productsRepo = {
 
   update(id: number, input: ProductInput): Product | undefined {
     db.prepare(
-      `UPDATE products SET sku=@sku, name=@name, type=@type, color=@color, cost_vnd=@costVnd,
+      `UPDATE products SET sku=@sku, name=@name, type=@type, category=@category, color=@color, cost_vnd=@costVnd,
         selling_price_vnd=@sellingPriceVnd, qty_on_hand=@qtyOnHand,
         low_stock_threshold=@lowStockThreshold, active=@active WHERE id=@id`,
     ).run({ ...input, id })
@@ -183,11 +184,11 @@ export const productsRepo = {
 
     transaction(() => {
       const insProd = db.prepare(
-        `INSERT INTO products (sku, name, type, color, cost_vnd, selling_price_vnd, qty_on_hand, low_stock_threshold, active, created_at)
-         VALUES (@sku, @name, @type, @color, @costVnd, @sellingPriceVnd, @qtyOnHand, @lowStockThreshold, 1, @createdAt)`,
+        `INSERT INTO products (sku, name, type, category, color, cost_vnd, selling_price_vnd, qty_on_hand, low_stock_threshold, active, created_at)
+         VALUES (@sku, @name, @type, @category, @color, @costVnd, @sellingPriceVnd, @qtyOnHand, @lowStockThreshold, 1, @createdAt)`,
       )
       const updProd = db.prepare(
-        `UPDATE products SET name=@name, type=@type, color=@color, cost_vnd=@costVnd,
+        `UPDATE products SET name=@name, type=@type, category=@category, color=@color, cost_vnd=@costVnd,
           selling_price_vnd=@sellingPriceVnd, qty_on_hand=@qtyOnHand, low_stock_threshold=@lowStockThreshold
          WHERE sku=@sku`,
       )
@@ -196,6 +197,7 @@ export const productsRepo = {
           sku: p.sku,
           name: p.name,
           type: p.type,
+          category: p.category ?? 'bike', // default when import file omits the column
           color: p.color,
           costVnd: p.costVnd,
           sellingPriceVnd: p.sellingPriceVnd,

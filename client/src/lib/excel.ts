@@ -1,7 +1,7 @@
-import type { ImportPayload, ImportProductRow, ImportUnitRow, ProductType } from '@shared/types'
+import type { ImportPayload, ImportProductRow, ImportUnitRow, ProductType, ProductCategory } from '@shared/types'
 
 // Template headers (Vietnamese). Users may keep these as-is.
-const PRODUCT_HEADERS = ['Tên', 'SKU', 'Loại', 'Màu', 'GiáNhập', 'GiáBán', 'SốLượng', 'NgưỡngTồn']
+const PRODUCT_HEADERS = ['Tên', 'SKU', 'DanhMục', 'Loại', 'Màu', 'GiáNhập', 'GiáBán', 'SốLượng', 'NgưỡngTồn']
 const UNIT_HEADERS = ['SKU', 'Serial', 'GiáNhập', 'NgàyNhập']
 
 const SHEET_PRODUCTS = 'SanPham'
@@ -23,9 +23,19 @@ function toInt(v: unknown): number {
 
 function toType(v: unknown): ProductType | string {
   const n = norm(v)
-  if (n.includes('serial') || n.includes('xe')) return 'SERIALIZED'
-  if (n.includes('quantity') || n.includes('phukien') || n === 'pk' || n.includes('phu')) return 'QUANTITY'
+  if (n.includes('serial')) return 'SERIALIZED'
+  if (n.includes('soluong') || n.includes('quantity') || n.includes('phukien') || n === 'pk' || n.includes('phu'))
+    return 'QUANTITY'
+  if (n.includes('xe')) return 'SERIALIZED' // legacy templates where "Loại=Xe" meant serial-tracked
+  if (!n) return 'QUANTITY' // blank → default to quantity (no serial required)
   return String(v ?? '') // unknown → let server flag it
+}
+
+// Business category. Defaults to 'bike' (e-bike shop) when the column is blank/unknown.
+function toCategory(v: unknown): ProductCategory {
+  const n = norm(v)
+  if (n.includes('phukien') || n === 'pk' || n.includes('phu') || n.includes('accessory')) return 'accessory'
+  return 'bike'
 }
 
 function toDate(v: unknown): string {
@@ -81,6 +91,7 @@ export async function parseImportFile(file: File): Promise<ImportPayload> {
           sku,
           name,
           type: toType(pick(row, idx, 'Loại', 'Loai', 'Type')) as ProductType,
+          category: toCategory(pick(row, idx, 'DanhMục', 'Danhmuc', 'Category')),
           color: String(pick(row, idx, 'Màu', 'Mau', 'Color') ?? '').trim() || null,
           costVnd: toInt(pick(row, idx, 'GiáNhập', 'Gianhap', 'Cost')),
           sellingPriceVnd: toInt(pick(row, idx, 'GiáBán', 'Giaban', 'Price')),
@@ -122,10 +133,10 @@ export async function downloadTemplate(): Promise<void> {
 
   const ws1 = XLSX.utils.aoa_to_sheet([
     PRODUCT_HEADERS,
-    ['Xe VinFast Klara S', 'XE-KLARA-S', 'Xe', 'Đỏ', 22000000, 26000000, '', 1],
-    ['Mũ bảo hiểm', 'PK-MU-01', 'Phụ kiện', 'Đen', 80000, 150000, 50, 5],
+    ['Xe VinFast Klara S', 'XE-KLARA-S', 'Xe', 'Theo số lượng', 'Đỏ', 22000000, 26000000, 10, 1],
+    ['Mũ bảo hiểm', 'PK-MU-01', 'Phụ kiện', 'Theo số lượng', 'Đen', 80000, 150000, 50, 5],
   ])
-  ws1['!cols'] = [{ wch: 22 }, { wch: 14 }, { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 12 }]
+  ws1['!cols'] = [{ wch: 22 }, { wch: 14 }, { wch: 10 }, { wch: 14 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 12 }]
   XLSX.utils.book_append_sheet(wb, ws1, SHEET_PRODUCTS)
 
   const ws2 = XLSX.utils.aoa_to_sheet([

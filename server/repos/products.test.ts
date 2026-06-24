@@ -25,6 +25,7 @@ describe('productsRepo', () => {
       sku: 'PK-01',
       name: 'Mũ bảo hiểm (mới)',
       type: 'QUANTITY',
+      category: 'accessory',
       color: 'Đen',
       costVnd: 90_000,
       sellingPriceVnd: 160_000,

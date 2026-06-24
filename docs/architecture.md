@@ -26,7 +26,7 @@ Trình duyệt  ──HTTP──▶  Express (port 3001)  ──SQL──▶  SQ
 index.ts          entry point (listen + static)
 app.ts            createApp() — mount routes; attachErrorHandler()
 db.ts             mở kết nối SQLite, khởi tạo schema, helper transaction
-schema.sql        DDL: bảng products, product_units, customers, sales, sale_items, debt_payments
+schema.sql        DDL: bảng products (có cột category TEXT DEFAULT 'bike'), product_units, customers, sales, sale_items, debt_payments
 lib/http.ts       validateBody(zodSchema, body) · errorHandler middleware · HttpError
 routes/           một Router per resource → mount vào /api/<resource>
 repos/            truy vấn SQL thuần, ném Error thường → middleware bắt → HTTP 400
@@ -60,6 +60,7 @@ Request → Route handler
 | GET | `/api/customers/:id/sales` | lịch sử mua hàng |
 | GET/POST | `/api/sales` | danh sách / tạo đơn |
 | GET | `/api/sales/:id` | chi tiết đơn |
+| PUT | `/api/sales/:id` | sửa đơn (reverse-and-reapply nguyên tử) |
 | POST | `/api/sales/:id/payments` | thêm lần trả nợ |
 | PUT/DELETE | `/api/sales/:id/payments/:pid` | sửa / xóa lần trả |
 | GET | `/api/debts` | danh sách công nợ + phân tích tuổi nợ |
@@ -127,6 +128,15 @@ Tất cả 5 trang dùng `React.lazy()` + `Suspense` — Vite tự tách thành 
 
 Chứa toàn bộ TypeScript interface/type dùng chung giữa server và client. Không có logic, chỉ là type definitions.
 
+Hai phân biệt quan trọng trong `Product`:
+
+| Field | Giá trị | Ý nghĩa |
+|---|---|---|
+| `type` | `SERIALIZED` / `QUANTITY` | Cách theo dõi tồn kho (serial hay số lượng) |
+| `category` | `bike` / `accessory` | Phân loại kinh doanh (`Xe` / `Phụ kiện`) |
+
+`type` và `category` độc lập nhau — xe có thể theo dõi bằng số lượng, phụ kiện có thể dùng serial. `category` dùng để nhóm doanh thu trên Dashboard ("Doanh thu theo loại SP").
+
 ---
 
 ## Luồng dữ liệu quan trọng
@@ -142,6 +152,23 @@ SaleForm (client)
       → nếu còn_nợ > 0: INSERT debt_payments (ghi nhận nợ)
   → TanStack Query invalidate ['sales', 'debts', 'dashboard']
 ```
+
+### Sửa đơn bán hàng (reverse-and-reapply)
+
+```
+SaleForm (client, editId prop)
+  → PUT /api/sales/:id
+  → salesRepo.update()  [transaction]
+      → guard: paidVnd >= min(collected, total) — ném lỗi nếu vi phạm
+      → restoreInventory()    — hoàn tồn kho từ đơn cũ
+      → dropDebtsAndItems()   — xóa debt_payments, debts, sale_items cũ
+      → UPDATE sales          — cập nhật thông tin đơn
+      → writeItems()          — ghi sale_items mới (trừ tồn kho lại)
+      → createDebtIfUnderpaid() — tạo nợ nếu vẫn còn thiếu
+  → TanStack Query invalidate ['sales', 'debts', 'dashboard']
+```
+
+Lịch sử trả từng đợt bị xóa khi sửa; giá trị "Khách trả" trong form đại diện tổng số tiền đã thu thực tế.
 
 ### Thu nợ
 

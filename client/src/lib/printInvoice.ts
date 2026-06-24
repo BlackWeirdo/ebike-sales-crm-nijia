@@ -68,7 +68,11 @@ function customerBlock(sale: SaleDetail): string {
 }
 
 function buildInvoiceHtml(sale: SaleDetail, logo: string | null): string {
-  const balance = sale.totalVnd - sale.paidVnd
+  // collectedVnd / remainingVnd account for post-sale debt payments; paidVnd is only the at-checkout amount.
+  const collected = sale.collectedVnd
+  const balance = sale.remainingVnd
+  // Show the per-line discount column only when at least one line actually has a discount.
+  const hasLineDiscount = sale.items.some((it) => it.lineDiscountVnd > 0)
   const rows = sale.items
     .map(
       (it, i) => `
@@ -77,6 +81,7 @@ function buildInvoiceHtml(sale: SaleDetail, logo: string | null): string {
         <td>${esc(it.productName)}${it.productSku ? ` - ${esc(it.productSku)}` : ''}${it.serialNumber ? `<div class="sn">SN: ${esc(it.serialNumber)}</div>` : ''}</td>
         <td style="text-align:center">${it.qty}</td>
         <td style="text-align:right">${formatVnd(it.unitPriceVnd)}</td>
+        ${hasLineDiscount ? `<td style="text-align:right">${it.lineDiscountVnd > 0 ? `- ${formatVnd(it.lineDiscountVnd)}` : '-'}</td>` : ''}
         <td style="text-align:right">${formatVnd(it.lineTotalVnd)}</td>
       </tr>`,
     )
@@ -139,6 +144,7 @@ function buildInvoiceHtml(sale: SaleDetail, logo: string | null): string {
       <th style="width:36px;text-align:center">STT</th><th>Sản phẩm</th>
       <th style="width:50px;text-align:center">SL</th>
       <th style="width:120px;text-align:right">Đơn giá</th>
+      ${hasLineDiscount ? `<th style="width:110px;text-align:right">Giảm</th>` : ''}
       <th style="width:130px;text-align:right">Thành tiền</th>
     </tr></thead>
     <tbody>${rows}</tbody>
@@ -147,7 +153,7 @@ function buildInvoiceHtml(sale: SaleDetail, logo: string | null): string {
     <div class="row"><span>Tạm tính</span><span>${formatVnd(sale.subtotalVnd)}</span></div>
     ${sale.discountVnd > 0 ? `<div class="row"><span>Giảm giá</span><span>- ${formatVnd(sale.discountVnd)}</span></div>` : ''}
     <div class="row grand"><span>TỔNG CỘNG</span><span>${formatVnd(sale.totalVnd)}</span></div>
-    <div class="row"><span>Khách trả</span><span>${formatVnd(sale.paidVnd)}</span></div>
+    <div class="row"><span>Khách trả</span><span>${formatVnd(collected)}</span></div>
     ${balance > 0 ? `<div class="row debt"><span>Còn nợ</span><span>${formatVnd(balance)}</span></div>` : ''}
   </div>
   ${sale.notes ? `<div class="note">Ghi chú: ${esc(sale.notes)}</div>` : ''}
