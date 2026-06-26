@@ -41,6 +41,17 @@ CREATE TABLE IF NOT EXISTS customers (
   created_at     TEXT NOT NULL
 );
 
+-- Danh mục tài khoản nhận tiền (in trên phiếu). Xóa mềm qua active=0.
+CREATE TABLE IF NOT EXISTS bank_accounts (
+  id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  label          TEXT NOT NULL,            -- tên gợi nhớ: "Công ty - VCB", "NV Ngọc - MB"
+  bank_name      TEXT NOT NULL DEFAULT '',
+  account_number TEXT NOT NULL DEFAULT '',
+  account_holder TEXT NOT NULL DEFAULT '',
+  active         INTEGER NOT NULL DEFAULT 1,
+  created_at     TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS sales (
   id             INTEGER PRIMARY KEY AUTOINCREMENT,
   customer_id    INTEGER REFERENCES customers(id),
@@ -50,7 +61,8 @@ CREATE TABLE IF NOT EXISTS sales (
   total_vnd      INTEGER NOT NULL DEFAULT 0,
   paid_vnd       INTEGER NOT NULL DEFAULT 0,
   payment_method TEXT NOT NULL DEFAULT 'cash' CHECK (payment_method IN ('cash','transfer','mixed')),
-  notes          TEXT
+  notes          TEXT,
+  payment_accounts TEXT             -- JSON snapshot PaymentAccountLine[]; chỉ-để-in, độc lập kế toán
 );
 CREATE INDEX IF NOT EXISTS idx_sales_date ON sales(sale_date);
 CREATE INDEX IF NOT EXISTS idx_sales_customer ON sales(customer_id);

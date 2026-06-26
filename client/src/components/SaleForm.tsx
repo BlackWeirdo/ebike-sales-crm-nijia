@@ -1,48 +1,31 @@
 import { useEffect, useMemo, useState } from 'react'
-import {
-  Table,
-  Button,
-  Modal,
-  Select,
-  NumberInput,
-  Group,
-  ActionIcon,
-  Card,
-  Text,
-  Stack,
-  Divider,
-  Box,
-  TextInput,
-  Textarea,
-  Alert,
-  ScrollArea,
-} from '@mantine/core'
-import { IconPlus, IconTrash, IconShoppingCart, IconAlertCircle } from '@tabler/icons-react'
+import { Button, Modal, Select, NumberInput, Group, Box, Divider, TextInput, Textarea, Alert, Stack } from '@mantine/core'
+import { IconPlus, IconShoppingCart, IconAlertCircle } from '@tabler/icons-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { ProductWithStock, InventoryUnit, SaleItemInput, PaymentMethod } from '@shared/types'
+import type { InventoryUnit, PaymentMethod, PaymentAccountLine } from '@shared/types'
 import { api } from '../lib/api.ts'
-import { MoneyInput } from './MoneyInput.tsx'
 import { formatVnd, today } from '../lib/format.ts'
 import { toastOk, toastError } from '../lib/notify.ts'
-
-interface CartLine extends SaleItemInput {
-  key: string
-  productName: string
-  productSku: string
-  type: ProductWithStock['type']
-  serialNumber?: string
-}
+import {
+  SaleCartTable,
+  SaleTotalsCard,
+  PaymentAccountsField,
+  type CartLine,
+  type PayAcctRow,
+} from './SaleFormParts.tsx'
 
 /**
  * Modal tạo HOẶC sửa đơn bán: chọn khách, thêm sản phẩm vào giỏ, tính tiền, ghi nhận thanh toán.
  * Truyền `editId` để sửa đơn cũ (vd áp chiết khấu hồi tố). Khi sửa, hệ thống hoàn tả tồn kho cũ +
  * dựng lại công nợ; số tiền đã thu được gộp vào "Khách trả" nên không mất tiền, chỉ mất chi tiết từng lần.
+ * Bảng giỏ / card tổng tiền / khối chia tài khoản tách sang SaleFormParts.tsx để giữ file gọn.
  */
 export function SaleForm({ onClose, editId }: { onClose: () => void; editId?: number }) {
   const qc = useQueryClient()
   const isEdit = editId != null
   const { data: products = [] } = useQuery({ queryKey: ['products'], queryFn: api.products.list })
   const { data: customers = [] } = useQuery({ queryKey: ['customers', ''], queryFn: () => api.customers.list() })
+  const { data: bankAccounts = [] } = useQuery({ queryKey: ['bankAccounts'], queryFn: api.bankAccounts.list })
   const { data: editSale } = useQuery({
     queryKey: ['sale', editId],
     queryFn: () => api.sales.get(editId!),
@@ -57,6 +40,8 @@ export function SaleForm({ onClose, editId }: { onClose: () => void; editId?: nu
   const [dueDate, setDueDate] = useState('')
   const [notes, setNotes] = useState('')
   const [cart, setCart] = useState<CartLine[]>([])
+  const [splitAccounts, setSplitAccounts] = useState(false) // bật khối "chia tài khoản nhận tiền"
+  const [payRows, setPayRows] = useState<PayAcctRow[]>([])
   const [hydrated, setHydrated] = useState(false)
   // Whether the edited sale had recorded installment payments (warn they'll be consolidated).
   const hadInstallments = (editSale?.debt?.payments.length ?? 0) > 0
@@ -87,6 +72,17 @@ export function SaleForm({ onClose, editId }: { onClose: () => void; editId?: nu
           serialNumber: it.serialNumber ?? undefined,
         })),
     )
+    const accts = editSale.paymentAccounts ?? []
+    if (accts.length > 0) {
+      setSplitAccounts(true)
+      setPayRows(
+        accts.map((a, i) => ({
+          key: `pa${i}-${a.accountId ?? 'x'}`,
+          accountId: a.accountId != null ? String(a.accountId) : null,
+          amountVnd: a.amountVnd,
+        })),
+      )
+    }
     setHydrated(true)
   }, [isEdit, hydrated, editSale, products])
 
@@ -106,6 +102,24 @@ export function SaleForm({ onClose, editId }: { onClose: () => void; editId?: nu
   const total = Math.max(0, subtotal - discountVnd)
   const balance = Math.max(0, total - paidVnd)
 
+  // Dựng SNAPSHOT các tài khoản nhận tiền để lưu (chỉ-để-in, không ảnh hưởng tiền).
+  function buildPaymentAccounts(): PaymentAccountLine[] {
+    if (!splitAccounts) return []
+    return payRows
+      .filter((r) => r.accountId) // bỏ dòng chưa chọn tài khoản
+      .map((r) => {
+        const acc = bankAccounts.find((b) => String(b.id) === r.accountId)
+        return {
+          accountId: acc ? acc.id : null,
+          label: acc?.label ?? '',
+          bankName: acc?.bankName ?? '',
+          accountNumber: acc?.accountNumber ?? '',
+          accountHolder: acc?.accountHolder ?? '',
+          amountVnd: r.amountVnd,
+        }
+      })
+  }
+
   const saveMut = useMutation({
     mutationFn: () => {
       const payload = {
@@ -123,6 +137,7 @@ export function SaleForm({ onClose, editId }: { onClose: () => void; editId?: nu
           unitPriceVnd: l.unitPriceVnd,
           lineDiscountVnd: l.lineDiscountVnd,
         })),
+        paymentAccounts: buildPaymentAccounts(),
       }
       return isEdit ? api.sales.update(editId!, payload) : api.sales.create(payload)
     },
@@ -194,6 +209,16 @@ export function SaleForm({ onClose, editId }: { onClose: () => void; editId?: nu
   }
   function removeLine(key: string) {
     setCart((c) => c.filter((l) => l.key !== key))
+  }
+
+  function addPayRow() {
+    setPayRows((r) => [...r, { key: `pa${Date.now()}`, accountId: null, amountVnd: 0 }])
+  }
+  function updatePayRow(key: string, patch: Partial<PayAcctRow>) {
+    setPayRows((r) => r.map((x) => (x.key === key ? { ...x, ...patch } : x)))
+  }
+  function removePayRow(key: string) {
+    setPayRows((r) => r.filter((x) => x.key !== key))
   }
 
   const productOptions = useMemo(
@@ -269,74 +294,7 @@ export function SaleForm({ onClose, editId }: { onClose: () => void; editId?: nu
           </Button>
         </Group>
 
-        {cart.length > 0 && (
-          <ScrollArea.Autosize mah={260}>
-            <Table>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>Sản phẩm</Table.Th>
-                  <Table.Th w={80}>SL</Table.Th>
-                  <Table.Th>Đơn giá</Table.Th>
-                  <Table.Th>Giảm</Table.Th>
-                  <Table.Th>Thành tiền</Table.Th>
-                  <Table.Th />
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {cart.map((l) => (
-                  <Table.Tr key={l.key}>
-                    <Table.Td>
-                      <Text size="sm" fw={600}>
-                        {l.productName}
-                        {l.productSku ? ` - ${l.productSku}` : ''}
-                      </Text>
-                      {l.serialNumber && (
-                        <Text size="xs" c="dimmed">
-                          SN: {l.serialNumber}
-                        </Text>
-                      )}
-                    </Table.Td>
-                    <Table.Td>
-                      {l.type === 'QUANTITY' ? (
-                        <NumberInput
-                          size="xs"
-                          min={1}
-                          value={l.qty}
-                          onChange={(v) => updateLine(l.key, { qty: Number(v) || 1 })}
-                          w={70}
-                        />
-                      ) : (
-                        1
-                      )}
-                    </Table.Td>
-                    <Table.Td>
-                      <MoneyInput
-                        size="xs"
-                        value={l.unitPriceVnd}
-                        onChange={(v) => updateLine(l.key, { unitPriceVnd: Number(v) || 0 })}
-                        w={120}
-                      />
-                    </Table.Td>
-                    <Table.Td>
-                      <MoneyInput
-                        size="xs"
-                        value={l.lineDiscountVnd}
-                        onChange={(v) => updateLine(l.key, { lineDiscountVnd: Number(v) || 0 })}
-                        w={100}
-                      />
-                    </Table.Td>
-                    <Table.Td fw={600}>{formatVnd(l.qty * l.unitPriceVnd - l.lineDiscountVnd)}</Table.Td>
-                    <Table.Td>
-                      <ActionIcon variant="subtle" color="red" onClick={() => removeLine(l.key)}>
-                        <IconTrash size={16} />
-                      </ActionIcon>
-                    </Table.Td>
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          </ScrollArea.Autosize>
-        )}
+        <SaleCartTable cart={cart} updateLine={updateLine} removeLine={removeLine} />
 
         <Divider />
         <Group justify="space-between" align="flex-start">
@@ -355,46 +313,29 @@ export function SaleForm({ onClose, editId }: { onClose: () => void; editId?: nu
             />
             <Textarea label="Ghi chú" autosize minRows={1} value={notes} onChange={(e) => setNotes(e.currentTarget.value)} />
           </Box>
-          <Card withBorder w={300} padding="md">
-            <Stack gap={6}>
-              <Group justify="space-between">
-                <Text size="sm" c="dimmed">
-                  Tạm tính
-                </Text>
-                <Text size="sm">{formatVnd(subtotal)}</Text>
-              </Group>
-              <Group justify="space-between" align="center">
-                <Text size="sm" c="dimmed">
-                  Giảm giá đơn
-                </Text>
-                <MoneyInput size="xs" value={discountVnd} onChange={(v) => setDiscountVnd(Number(v) || 0)} w={120} />
-              </Group>
-              <Group justify="space-between">
-                <Text fw={700}>Tổng cộng</Text>
-                <Text fw={700} c="teal" size="lg">
-                  {formatVnd(total)}
-                </Text>
-              </Group>
-              <Group justify="space-between" align="center">
-                <Text size="sm" c="dimmed">
-                  Khách trả
-                </Text>
-                <MoneyInput size="xs" max={total} value={paidVnd} onChange={(v) => setPaidVnd(Number(v) || 0)} w={120} />
-              </Group>
-              <Button size="xs" variant="subtle" onClick={() => setPaidVnd(total)}>
-                Trả đủ
-              </Button>
-              <Group justify="space-between">
-                <Text fw={600} c={balance > 0 ? 'red' : 'teal'}>
-                  Còn nợ
-                </Text>
-                <Text fw={700} c={balance > 0 ? 'red' : 'teal'}>
-                  {formatVnd(balance)}
-                </Text>
-              </Group>
-            </Stack>
-          </Card>
+          <SaleTotalsCard
+            subtotal={subtotal}
+            discountVnd={discountVnd}
+            onDiscountChange={setDiscountVnd}
+            total={total}
+            paidVnd={paidVnd}
+            onPaidChange={setPaidVnd}
+            balance={balance}
+          />
         </Group>
+
+        <PaymentAccountsField
+          enabled={splitAccounts}
+          onToggle={(on) => {
+            setSplitAccounts(on)
+            if (on && payRows.length === 0) addPayRow()
+          }}
+          payRows={payRows}
+          bankAccounts={bankAccounts}
+          addPayRow={addPayRow}
+          updatePayRow={updatePayRow}
+          removePayRow={removePayRow}
+        />
 
         {balance > 0 && (
           <Group align="flex-end">

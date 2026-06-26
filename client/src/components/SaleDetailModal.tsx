@@ -90,6 +90,32 @@ export function SaleDetailModal({ id, onClose }: { id: number; onClose: () => vo
             </Text>
           )}
 
+          {data.paymentAccounts && data.paymentAccounts.length > 0 && (
+            <>
+              <Divider label="Tài khoản nhận tiền" labelPosition="left" />
+              <Table>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>Tài khoản</Table.Th>
+                    <Table.Th>Ngân hàng</Table.Th>
+                    <Table.Th>Số TK</Table.Th>
+                    <Table.Th>Số tiền</Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {data.paymentAccounts.map((a, i) => (
+                    <Table.Tr key={i}>
+                      <Table.Td>{a.label}</Table.Td>
+                      <Table.Td>{a.bankName || '—'}</Table.Td>
+                      <Table.Td>{a.accountNumber || '—'}</Table.Td>
+                      <Table.Td>{formatVnd(a.amountVnd)}</Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            </>
+          )}
+
           {data.debt && (
             <>
               <Divider label="Thanh toán công nợ" labelPosition="left" />

@@ -14,7 +14,15 @@ import type {
   ProductAnalytics,
   ImportPayload,
   ImportResult,
+  BankAccount,
+  ProductInput,
+  CustomerInput,
+  BankAccountInput,
+  PaymentInput,
 } from '@shared/types'
+
+// Re-export write-input contracts so pages keep importing them from the api module.
+export type { ProductInput, CustomerInput, BankAccountInput, PaymentInput } from '@shared/types'
 
 const BASE = '/api'
 
@@ -37,42 +45,11 @@ async function req<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json() as Promise<T>
 }
 
-export interface ProductInput {
-  sku: string
-  name: string
-  type: 'SERIALIZED' | 'QUANTITY'
-  category: 'bike' | 'accessory'
-  color: string | null
-  costVnd: number
-  sellingPriceVnd: number
-  qtyOnHand: number
-  lowStockThreshold: number
-  active: number
-}
-
-export interface CustomerInput {
-  type: 'individual' | 'dealer'
-  name: string
-  contactPerson: string | null
-  taxCode: string | null
-  phone: string | null
-  email: string | null
-  address: string | null
-  notes: string | null
-}
-
 export type CustomerDetail = Customer & {
   stats: { purchaseCount: number; totalSpentVnd: number; outstandingDebtVnd: number }
 }
 
 export type DebtDetail = DebtWithBalance & { payments: DebtPayment[] }
-
-export interface PaymentInput {
-  paidAt: string // 'YYYY-MM-DDTHH:MM'
-  amountVnd: number
-  method: 'cash' | 'transfer'
-  notes: string | null
-}
 
 export const api = {
   // auth (single-password gate; no-op when server runs without APP_PASSWORD)
@@ -148,6 +125,15 @@ export const api = {
       req<DebtDetail>(`/debts/${id}/payments/${paymentId}`, { method: 'PUT', body: JSON.stringify(data) }),
     deletePayment: (id: number, paymentId: number) =>
       req<void>(`/debts/${id}/payments/${paymentId}`, { method: 'DELETE' }),
+  },
+  // bank accounts (tài khoản nhận tiền — in trên phiếu)
+  bankAccounts: {
+    list: () => req<BankAccount[]>('/bank-accounts'),
+    create: (data: BankAccountInput) =>
+      req<BankAccount>('/bank-accounts', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: number, data: BankAccountInput) =>
+      req<BankAccount>(`/bank-accounts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    remove: (id: number) => req<void>(`/bank-accounts/${id}`, { method: 'DELETE' }),
   },
   // dashboard
   dashboard: {

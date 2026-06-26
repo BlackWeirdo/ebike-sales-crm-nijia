@@ -6,6 +6,7 @@ import { customersRouter } from './routes/customers.ts'
 import { salesRouter } from './routes/sales.ts'
 import { debtsRouter } from './routes/debts.ts'
 import { dashboardRouter } from './routes/dashboard.ts'
+import { bankAccountsRouter } from './routes/bank-accounts.ts'
 import { errorHandler } from './lib/http.ts'
 import { authRouter, requireAuth } from './lib/auth.ts'
 
@@ -24,6 +25,7 @@ export function createApp(): Express {
   app.use('/api/sales', salesRouter)
   app.use('/api/debts', debtsRouter)
   app.use('/api/dashboard', dashboardRouter)
+  app.use('/api/bank-accounts', bankAccountsRouter)
 
   return app
 }

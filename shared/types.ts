@@ -59,6 +59,29 @@ export interface Sale {
   notes: string | null
 }
 
+// Danh mục tài khoản nhận tiền (CRUD riêng). Xóa = xóa mềm (active=0).
+export interface BankAccount {
+  id: number
+  label: string // tên gợi nhớ, vd "Công ty - VCB", "NV Ngọc - MB"
+  bankName: string
+  accountNumber: string
+  accountHolder: string
+  active: number // 0 | 1
+  createdAt: string
+}
+
+// 1 dòng "tài khoản nhận tiền" trên đơn bán. CHỈ ĐỂ IN (không ảnh hưởng paid/công nợ).
+// Là SNAPSHOT của tài khoản tại thời điểm bán → sửa/xóa TK trong danh mục về sau KHÔNG
+// làm sai phiếu cũ. accountId có thể null nếu TK nguồn đã bị xóa.
+export interface PaymentAccountLine {
+  accountId: number | null
+  label: string
+  bankName: string
+  accountNumber: string
+  accountHolder: string
+  amountVnd: number
+}
+
 export interface SaleItem {
   id: number
   saleId: number
@@ -114,6 +137,48 @@ export interface CreateSaleInput {
   notes: string | null
   dueDate: string | null // for unpaid balance debt; defaults saleDate+30
   items: SaleItemInput[]
+  paymentAccounts?: PaymentAccountLine[] // chỉ-để-in; client gửi sẵn snapshot
+}
+
+// ----- API write inputs (client → server contracts; shared by repos + api client) -----
+
+export interface ProductInput {
+  sku: string
+  name: string
+  type: ProductType
+  category: ProductCategory
+  color: string | null
+  costVnd: number
+  sellingPriceVnd: number
+  qtyOnHand: number
+  lowStockThreshold: number
+  active: number
+}
+
+export interface CustomerInput {
+  type: CustomerType
+  name: string
+  contactPerson: string | null
+  taxCode: string | null
+  phone: string | null
+  email: string | null
+  address: string | null
+  notes: string | null
+}
+
+export interface BankAccountInput {
+  label: string
+  bankName: string
+  accountNumber: string
+  accountHolder: string
+  active: number
+}
+
+export interface PaymentInput {
+  paidAt: string // 'YYYY-MM-DD' or 'YYYY-MM-DDTHH:MM'
+  amountVnd: number
+  method: DebtPaymentMethod
+  notes: string | null
 }
 
 export interface SaleListItem extends Sale {
@@ -139,6 +204,7 @@ export interface SaleDetail extends Sale {
   collectedVnd: number
   remainingVnd: number
   debt: SaleDebtInfo | null
+  paymentAccounts: PaymentAccountLine[] // snapshot các tài khoản nhận tiền (để in)
 }
 
 export interface DebtWithBalance extends Debt {

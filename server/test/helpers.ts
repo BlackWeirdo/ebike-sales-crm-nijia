@@ -2,7 +2,7 @@ import { db } from '../db.ts'
 import { productsRepo } from '../repos/products.ts'
 import { customersRepo } from '../repos/customers.ts'
 
-const TABLES = ['debt_payments', 'debts', 'sale_items', 'sales', 'inventory_units', 'products', 'customers']
+const TABLES = ['debt_payments', 'debts', 'sale_items', 'sales', 'inventory_units', 'products', 'customers', 'bank_accounts']
 
 /** Wipe all rows + reset autoincrement counters. Call in beforeEach for per-test isolation. */
 export function resetDb(): void {

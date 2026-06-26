@@ -8,6 +8,7 @@ import {
   IconShoppingCart,
   IconReceipt2,
   IconBike,
+  IconBuildingBank,
 } from '@tabler/icons-react'
 import { Routes, Route, NavLink as RouterNavLink, Navigate, useLocation } from 'react-router-dom'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
@@ -20,6 +21,7 @@ const ProductsPage = lazy(() => import('./pages/ProductsPage.tsx'))
 const CustomersPage = lazy(() => import('./pages/CustomersPage.tsx'))
 const SalesPage = lazy(() => import('./pages/SalesPage.tsx'))
 const DebtsPage = lazy(() => import('./pages/DebtsPage.tsx'))
+const BankAccountsPage = lazy(() => import('./pages/BankAccountsPage.tsx'))
 
 const NAV = [
   { to: '/dashboard', label: 'Tổng quan', icon: IconLayoutDashboard },
@@ -27,6 +29,7 @@ const NAV = [
   { to: '/sales', label: 'Bán hàng', icon: IconShoppingCart },
   { to: '/customers', label: 'Khách hàng', icon: IconUsers },
   { to: '/debts', label: 'Công nợ', icon: IconReceipt2 },
+  { to: '/bank-accounts', label: 'Tài khoản nhận tiền', icon: IconBuildingBank },
 ]
 
 export default function App() {
@@ -92,6 +95,7 @@ export default function App() {
               <Route path="/sales" element={<SalesPage />} />
               <Route path="/customers" element={<CustomersPage />} />
               <Route path="/debts" element={<DebtsPage />} />
+              <Route path="/bank-accounts" element={<BankAccountsPage />} />
             </Routes>
           </Suspense>
         </ErrorBoundary>

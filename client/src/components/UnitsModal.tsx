@@ -2,18 +2,12 @@ import { Modal, Table, Button, Group, ActionIcon, Text, TextInput, Divider, Scro
 import { useForm } from '@mantine/form'
 import { IconPlus, IconTrash } from '@tabler/icons-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { ProductWithStock, InventoryUnit } from '@shared/types'
+import type { ProductWithStock } from '@shared/types'
 import { api } from '../lib/api.ts'
 import { MoneyInput } from './MoneyInput.tsx'
 import { formatDate, today } from '../lib/format.ts'
 import { toastOk, toastError } from '../lib/notify.ts'
-
-const UNIT_STATUS: Record<InventoryUnit['status'], { label: string; color: string }> = {
-  in_stock: { label: 'Còn trong kho', color: 'teal' },
-  sold: { label: 'Đã bán', color: 'gray' },
-  reserved: { label: 'Đã giữ', color: 'yellow' },
-  returned: { label: 'Đã trả', color: 'orange' },
-}
+import { UNIT_STATUS } from '../lib/labels.ts'
 
 /** Modal quản lý serial (đơn vị tồn kho) của 1 sản phẩm loại xe: nhập kho + xóa. */
 export function UnitsModal({ product, onClose }: { product: ProductWithStock; onClose: () => void }) {

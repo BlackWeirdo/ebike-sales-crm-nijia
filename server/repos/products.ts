@@ -1,7 +1,9 @@
 import { db, transaction } from '../db.ts'
+import { today } from '../lib/date.ts'
 import type {
   Product,
   ProductWithStock,
+  ProductInput,
   InventoryUnit,
   ImportPayload,
   ImportResult,
@@ -17,19 +19,6 @@ const PRODUCT_COLS = `
 const UNIT_COLS = `
   id, product_id AS productId, serial_number AS serialNumber, status,
   cost_vnd AS costVnd, acquired_date AS acquiredDate, sold_on_date AS soldOnDate`
-
-export interface ProductInput {
-  sku: string
-  name: string
-  type: 'SERIALIZED' | 'QUANTITY'
-  category: 'bike' | 'accessory'
-  color: string | null
-  costVnd: number
-  sellingPriceVnd: number
-  qtyOnHand: number
-  lowStockThreshold: number
-  active: number
-}
 
 export const productsRepo = {
   list(): ProductWithStock[] {
@@ -55,7 +44,7 @@ export const productsRepo = {
         `INSERT INTO products (sku, name, type, category, color, cost_vnd, selling_price_vnd, qty_on_hand, low_stock_threshold, active, created_at)
          VALUES (@sku, @name, @type, @category, @color, @costVnd, @sellingPriceVnd, @qtyOnHand, @lowStockThreshold, @active, @createdAt)`,
       )
-      .run({ ...input, createdAt: new Date().toISOString().slice(0, 10) })
+      .run({ ...input, createdAt: today() })
     return this.get(Number(info.lastInsertRowid))!
   },
 
@@ -180,7 +169,7 @@ export const productsRepo = {
     let productsCreated = 0
     let productsUpdated = 0
     let unitsCreated = 0
-    const today = new Date().toISOString().slice(0, 10)
+    const todayStr = today()
 
     transaction(() => {
       const insProd = db.prepare(
@@ -208,7 +197,7 @@ export const productsRepo = {
           updProd.run(base)
           productsUpdated++
         } else {
-          insProd.run({ ...base, createdAt: today })
+          insProd.run({ ...base, createdAt: todayStr })
           productsCreated++
         }
       }

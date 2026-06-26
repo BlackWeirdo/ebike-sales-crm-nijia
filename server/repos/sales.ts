@@ -1,7 +1,21 @@
 import { db, transaction } from '../db.ts'
-import type { SaleDetail, SaleListItem, CreateSaleInput } from '@shared/types'
+import type { SaleDetail, SaleListItem, CreateSaleInput, PaymentAccountLine } from '@shared/types'
 import { debtsRepo } from './debts.ts'
 import { customersRepo } from './customers.ts'
+
+// Snapshot tài khoản nhận tiền: lưu nguyên văn JSON do client gửi (chỉ-để-in, không động tới tiền).
+function serializePaymentAccounts(input: CreateSaleInput): string {
+  return JSON.stringify(input.paymentAccounts ?? [])
+}
+function parsePaymentAccounts(raw: unknown): PaymentAccountLine[] {
+  if (typeof raw !== 'string' || !raw) return []
+  try {
+    const v = JSON.parse(raw)
+    return Array.isArray(v) ? (v as PaymentAccountLine[]) : []
+  } catch {
+    return []
+  }
+}
 
 // Total collected after the sale = paid at checkout + every debt payment linked to this sale.
 // debt_payments is the single source of truth for post-sale collections.
@@ -116,13 +130,15 @@ export const salesRepo = {
   get(id: number): SaleDetail | undefined {
     const sale = db
       .prepare(
-        `SELECT ${SALE_COLS}, c.name AS customerName,
+        `SELECT ${SALE_COLS}, s.payment_accounts AS paymentAccountsJson, c.name AS customerName,
                 (s.paid_vnd + ${DEBT_PAID_SUBQUERY}) AS collectedVnd,
                 (s.total_vnd - s.paid_vnd - ${DEBT_PAID_SUBQUERY}) AS remainingVnd
          FROM sales s LEFT JOIN customers c ON c.id=s.customer_id WHERE s.id=?`,
       )
-      .get(id) as SaleDetail | undefined
+      .get(id) as (SaleDetail & { paymentAccountsJson?: string | null }) | undefined
     if (!sale) return undefined
+    sale.paymentAccounts = parsePaymentAccounts(sale.paymentAccountsJson)
+    delete sale.paymentAccountsJson
     sale.debt = debtsRepo.getBySale(id)
     sale.customer = sale.customerId ? (customersRepo.get(sale.customerId) ?? null) : null
     sale.items = db
@@ -155,8 +171,8 @@ export const salesRepo = {
       const { lines, subtotal, total } = computeAndValidate(input)
       const saleInfo = db
         .prepare(
-          `INSERT INTO sales (customer_id, sale_date, subtotal_vnd, discount_vnd, total_vnd, paid_vnd, payment_method, notes)
-           VALUES (@customerId, @saleDate, @subtotal, @discountVnd, @total, @paidVnd, @paymentMethod, @notes)`,
+          `INSERT INTO sales (customer_id, sale_date, subtotal_vnd, discount_vnd, total_vnd, paid_vnd, payment_method, notes, payment_accounts)
+           VALUES (@customerId, @saleDate, @subtotal, @discountVnd, @total, @paidVnd, @paymentMethod, @notes, @paymentAccounts)`,
         )
         .run({
           customerId: input.customerId,
@@ -167,6 +183,7 @@ export const salesRepo = {
           paidVnd: input.paidVnd,
           paymentMethod: input.paymentMethod,
           notes: input.notes,
+          paymentAccounts: serializePaymentAccounts(input),
         })
       const saleId = Number(saleInfo.lastInsertRowid)
       writeItems(saleId, lines, input.saleDate)
@@ -207,7 +224,8 @@ export const salesRepo = {
       dropDebtsAndItems(id)
       db.prepare(
         `UPDATE sales SET customer_id=@customerId, sale_date=@saleDate, subtotal_vnd=@subtotal,
-           discount_vnd=@discountVnd, total_vnd=@total, paid_vnd=@paidVnd, payment_method=@paymentMethod, notes=@notes
+           discount_vnd=@discountVnd, total_vnd=@total, paid_vnd=@paidVnd, payment_method=@paymentMethod,
+           notes=@notes, payment_accounts=@paymentAccounts
          WHERE id=@id`,
       ).run({
         id,
@@ -219,6 +237,7 @@ export const salesRepo = {
         paidVnd: input.paidVnd,
         paymentMethod: input.paymentMethod,
         notes: input.notes,
+        paymentAccounts: serializePaymentAccounts(input),
       })
       writeItems(id, lines, input.saleDate)
       createDebtIfUnderpaid(id, input, total)

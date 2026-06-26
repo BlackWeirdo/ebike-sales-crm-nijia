@@ -10,7 +10,10 @@ const PAYMENT_LABEL: Record<string, string> = {
 }
 
 function esc(s: string | null | undefined): string {
-  return (s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] as string)
+  return (s ?? '').replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string,
+  )
 }
 
 /**
@@ -65,6 +68,33 @@ function customerBlock(sale: SaleDetail): string {
   }
   const title = c.type === 'dealer' ? 'Thông tin khách hàng (đại lý)' : 'Thông tin khách hàng'
   return `<div class="cust-title">${title}</div><table class="cust-table">${rows.join('')}</table>`
+}
+
+// Khối "Thông tin chuyển khoản" — chỉ dẫn khách chuyển tiền vào (các) tài khoản. Chỉ hiện khi có dữ liệu.
+function paymentAccountsBlock(sale: SaleDetail): string {
+  const accts = sale.paymentAccounts ?? []
+  if (accts.length === 0) return ''
+  const rows = accts
+    .map(
+      (a) => `
+      <tr>
+        <td>${esc(a.label)}</td>
+        <td>${esc(a.bankName)}</td>
+        <td>${esc(a.accountNumber)}</td>
+        <td>${esc(a.accountHolder)}</td>
+        <td style="text-align:right">${formatVnd(a.amountVnd)}</td>
+      </tr>`,
+    )
+    .join('')
+  return `
+  <div class="cust-title" style="margin-top:16px">Thông tin chuyển khoản</div>
+  <table>
+    <thead><tr>
+      <th>Tài khoản</th><th>Ngân hàng</th><th>Số tài khoản</th><th>Chủ tài khoản</th>
+      <th style="width:130px;text-align:right">Số tiền</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`
 }
 
 function buildInvoiceHtml(sale: SaleDetail, logo: string | null): string {
@@ -156,6 +186,7 @@ function buildInvoiceHtml(sale: SaleDetail, logo: string | null): string {
     <div class="row"><span>Khách trả</span><span>${formatVnd(collected)}</span></div>
     ${balance > 0 ? `<div class="row debt"><span>Còn nợ</span><span>${formatVnd(balance)}</span></div>` : ''}
   </div>
+  ${paymentAccountsBlock(sale)}
   ${sale.notes ? `<div class="note">Ghi chú: ${esc(sale.notes)}</div>` : ''}
   <div class="note">${esc(SHOP.note)}</div>
   <div class="sign">

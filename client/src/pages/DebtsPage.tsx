@@ -9,16 +9,9 @@ import { ListTable } from '../components/ListTable.tsx'
 import { DebtPaymentsManager } from '../components/DebtPaymentsManager.tsx'
 import { LoadingBlock } from '../components/LoadingBlock.tsx'
 import { formatVnd, formatDate, formatDateTime } from '../lib/format.ts'
+import { DEBT_AGING_BUCKET } from '../lib/labels.ts'
 
 const SUBTLE_BG = 'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))'
-
-const BUCKET_LABELS: Record<DebtWithBalance['agingBucket'], { label: string; color: string }> = {
-  current: { label: 'Trong hạn', color: 'teal' },
-  '1-30': { label: '1-30 ngày', color: 'yellow' },
-  '31-60': { label: '31-60 ngày', color: 'orange' },
-  '61-90': { label: '61-90 ngày', color: 'red' },
-  '90+': { label: 'Trên 90 ngày', color: 'red' },
-}
 
 export default function DebtsPage() {
   const [filter, setFilter] = useState<'open' | 'paid' | 'all'>('open')
@@ -56,10 +49,10 @@ export default function DebtsPage() {
             </Text>
             <Group gap="lg">
               {aging &&
-                (Object.keys(BUCKET_LABELS) as DebtWithBalance['agingBucket'][]).map((b) => (
+                (Object.keys(DEBT_AGING_BUCKET) as DebtWithBalance['agingBucket'][]).map((b) => (
                   <Stack key={b} gap={0}>
-                    <Badge color={BUCKET_LABELS[b].color} variant="light" size="sm">
-                      {BUCKET_LABELS[b].label}
+                    <Badge color={DEBT_AGING_BUCKET[b].color} variant="light" size="sm">
+                      {DEBT_AGING_BUCKET[b].label}
                     </Badge>
                     <Text fw={600} size="sm" mt={4}>
                       {formatVnd(aging.buckets[b]?.totalVnd ?? 0)}
@@ -104,7 +97,7 @@ export default function DebtsPage() {
             <Table.Td>{formatDate(d.dueDate)}</Table.Td>
             <Table.Td>
               {d.balanceVnd > 0 ? (
-                <Badge color={BUCKET_LABELS[d.agingBucket].color} variant="light">
+                <Badge color={DEBT_AGING_BUCKET[d.agingBucket].color} variant="light">
                   {d.agingBucket === 'current' ? 'Trong hạn' : `Quá ${d.daysOverdue}n`}
                 </Badge>
               ) : (
@@ -176,7 +169,7 @@ function DebtViewModal({ id, onClose }: { id: number; onClose: () => void }) {
               {data.customerName}
             </Text>
             {data.balanceVnd > 0 ? (
-              <Badge color={BUCKET_LABELS[data.agingBucket].color} variant="light">
+              <Badge color={DEBT_AGING_BUCKET[data.agingBucket].color} variant="light">
                 {data.agingBucket === 'current' ? 'Trong hạn' : `Quá hạn ${data.daysOverdue} ngày`}
               </Badge>
             ) : (

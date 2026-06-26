@@ -1,12 +1,6 @@
 import { db, transaction } from '../db.ts'
-import type { DebtWithBalance, DebtPayment, SaleDebtInfo } from '@shared/types'
-
-export interface PaymentInput {
-  paidAt: string // 'YYYY-MM-DD' or 'YYYY-MM-DDTHH:MM'
-  amountVnd: number
-  method: 'cash' | 'transfer'
-  notes: string | null
-}
+import { today } from '../lib/date.ts'
+import type { DebtWithBalance, DebtPayment, SaleDebtInfo, PaymentInput } from '@shared/types'
 
 // Recompute debt.status from the sum of its payments. Single source of truth = debt_payments.
 function recalcStatus(debtId: number): void {
@@ -45,10 +39,10 @@ const DEBT_SELECT = `
 type RawDebt = Omit<DebtWithBalance, 'balanceVnd' | 'agingBucket' | 'daysOverdue'>
 
 function decorate(rows: RawDebt[]): DebtWithBalance[] {
-  const today = new Date().toISOString().slice(0, 10)
+  const todayStr = today()
   return rows.map((r) => {
     const balanceVnd = r.amountVnd - r.paidVnd
-    const { bucket, days } = agingBucket(r.dueDate, today)
+    const { bucket, days } = agingBucket(r.dueDate, todayStr)
     return {
       ...r,
       balanceVnd,

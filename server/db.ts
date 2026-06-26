@@ -37,6 +37,8 @@ ensureColumn('customers', 'type', "type TEXT NOT NULL DEFAULT 'individual'")
 ensureColumn('customers', 'contact_person', 'contact_person TEXT')
 ensureColumn('customers', 'tax_code', 'tax_code TEXT')
 ensureColumn('debt_payments', 'paid_at', 'paid_at TEXT')
+// Snapshot tài khoản nhận tiền của đơn (JSON). DB cũ đã có bảng sales → ALTER thêm cột.
+ensureColumn('sales', 'payment_accounts', 'payment_accounts TEXT')
 
 /**
  * Run `fn` inside a SQLite transaction. Commits on success, rolls back on throw.

@@ -1,19 +1,9 @@
 import { db } from '../db.ts'
-import type { Customer, CustomerType } from '@shared/types'
+import { today } from '../lib/date.ts'
+import type { Customer, CustomerType, CustomerInput } from '@shared/types'
 
 const COLS = `id, type, name, contact_person AS contactPerson, tax_code AS taxCode,
   phone, email, address, notes, created_at AS createdAt`
-
-export interface CustomerInput {
-  type: CustomerType
-  name: string
-  contactPerson: string | null
-  taxCode: string | null
-  phone: string | null
-  email: string | null
-  address: string | null
-  notes: string | null
-}
 
 export const customersRepo = {
   list(search?: string, type?: CustomerType): Customer[] {
@@ -42,7 +32,7 @@ export const customersRepo = {
         `INSERT INTO customers (type, name, contact_person, tax_code, phone, email, address, notes, created_at)
          VALUES (@type, @name, @contactPerson, @taxCode, @phone, @email, @address, @notes, @createdAt)`,
       )
-      .run({ ...input, createdAt: new Date().toISOString().slice(0, 10) })
+      .run({ ...input, createdAt: today() })
     return this.get(Number(info.lastInsertRowid))!
   },
 

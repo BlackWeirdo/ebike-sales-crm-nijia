@@ -13,6 +13,17 @@ const itemSchema = z.object({
   lineDiscountVnd: z.number().int().min(0),
 })
 
+// Snapshot tài khoản nhận tiền (chỉ-để-in). Chỉ validate SHAPE để chống payload rác,
+// KHÔNG đối soát giá trị/tổng (Hướng A: độc lập kế toán).
+const paymentAccountSchema = z.object({
+  accountId: z.number().int().positive().nullable(),
+  label: z.string().max(200),
+  bankName: z.string().max(200),
+  accountNumber: z.string().max(100),
+  accountHolder: z.string().max(200),
+  amountVnd: z.number().int().min(0),
+})
+
 const createSchema = z.object({
   customerId: z.number().int().positive().nullable(),
   saleDate: z.string().min(1),
@@ -22,6 +33,7 @@ const createSchema = z.object({
   notes: z.string().nullable(),
   dueDate: z.string().nullable(),
   items: z.array(itemSchema).min(1, 'Đơn hàng phải có ít nhất 1 sản phẩm'),
+  paymentAccounts: z.array(paymentAccountSchema).optional().default([]),
 })
 
 salesRouter.get('/', (_req, res) => res.json(salesRepo.list()))
